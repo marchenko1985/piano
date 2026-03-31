@@ -1,6 +1,30 @@
 {
   "permissions": {
-    "allow": ["WebSearch", "WebFetch", "Edit", "Write", "Glob", "Grep", "Read"]
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Read",
+      "Bash(npm run *)",
+      "Bash(npx vp *)",
+      "Bash(git *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(rm -f *.lock)",
+      "Bash(cat *)",
+      "Bash(lsof *)",
+      "mcp__chrome-devtools__*",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_Preview__preview_stop",
+      "mcp__Claude_Preview__preview_screenshot",
+      "mcp__Claude_Preview__preview_eval",
+      "mcp__Claude_Preview__preview_logs",
+      "mcp__Claude_Preview__preview_snapshot",
+      "mcp__Claude_Preview__preview_resize"
+    ]
   },
   "hooks": {
     "PostToolUse": [
