@@ -50,6 +50,14 @@ export class PianoKeyboardElement extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
+    this.shadowRoot!.addEventListener("click", (e) => {
+      const kbd = (e.target as HTMLElement).closest("kbd");
+      if (!kbd) return;
+      const midi = Number(kbd.getAttribute("data-midi"));
+      if (!Number.isNaN(midi)) {
+        this.dispatchEvent(new CustomEvent("key-click", { detail: { midi }, bubbles: true }));
+      }
+    });
   }
 
   connectedCallback(): void {
@@ -139,6 +147,7 @@ export class PianoKeyboardElement extends HTMLElement {
           border-radius: 0 0 3px 3px;
           position: relative;
           box-sizing: border-box;
+          cursor: pointer;
         }
 
         .white::after {
@@ -149,6 +158,7 @@ export class PianoKeyboardElement extends HTMLElement {
           bottom: 0;
           text-align: center;
           line-height: 2;
+          pointer-events: none;
         }
 
         .black {
@@ -162,6 +172,7 @@ export class PianoKeyboardElement extends HTMLElement {
           z-index: 1;
           box-sizing: border-box;
           transform: translateX(-50%);
+          cursor: pointer;
         }
 
         .gray { background-color: lightgray; }

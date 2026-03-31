@@ -140,6 +140,19 @@ A collection of browser-based mini-games for learning piano chords, intervals, a
 
 - Web Components use Shadow DOM with inline `<style>` blocks.
 - The `<piano-keyboard>` component auto-hides octave numbers on C keys when keys are too narrow (< 25px).
+- `<piano-keyboard>` dispatches a `key-click` custom event (with `detail.midi`) when a key is clicked. Register the click listener once in the constructor, NOT in `#render()` — otherwise re-renders from attribute changes add duplicate listeners.
+- When elements inside Shadow DOM need to communicate clicks outward, use `CustomEvent` with `bubbles: true` — normal click events don't expose shadow-internal targets.
+
+### Multi-Page Setup
+
+- Debug pages auto-discovered: drop an HTML file in `debug/` and it's picked up by `vite.config.ts` glob. No manual entry needed.
+- Each debug page needs a corresponding `src/debug/*.ts` entry script.
+- Update `src/main.ts` index links when adding new pages.
+
+### UI Consistency
+
+- When an input and button share a row, they should be the same visual weight — don't use `btn-sm` next to a full-size input.
+- Debug pages with multiple interactive sections should each have their own `<piano-keyboard>` instance rather than sharing one (avoids confusing scroll-to-top behavior).
 
 ## Old Project Features (for porting reference)
 

@@ -4,10 +4,11 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 
 ## Phase 1: Foundation
 
-- [ ] **`<piano-keyboard>` component** — rewrite as TypeScript Web Component with Shadow DOM
-- [ ] **Piano test page** (`piano.html`) — chord buttons, inversion controls, visual testing of the component
-- [ ] **Chords module** — chord data, parsing, MIDI↔note conversion (TypeScript with proper types)
-- [ ] **MIDI module** — device detection, note on/off routing (TypeScript)
+- [x] **`<piano-keyboard>` component** — rewrite as TypeScript Web Component with Shadow DOM
+- [x] **Piano test page** (`debug/piano-keyboard.html`) — chord buttons, inversion controls, visual testing
+- [x] **Chords module** — chord data, parsing (5 formats), MIDI↔note conversion, reverse lookup
+- [x] **Chords test page** (`debug/chords.html`) — parse & build, MIDI↔name, reverse lookup, progressions
+- [x] **MIDI module** — device detection, note on/off routing (TypeScript)
 
 ## Phase 2: First Game
 
@@ -43,6 +44,7 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 
 ## Cleanup
 
-- [ ] Remove placeholder demo code (counter, timer, click game)
-- [ ] Landing page with links to all games/tools
-- [ ] Favicon / branding
+- [x] Remove placeholder demo code (counter, timer, click game)
+- [x] Landing page with links to all games/tools
+- [x] Favicon / branding
+- [x] Design system (tokens + components)

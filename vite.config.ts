@@ -1,5 +1,14 @@
+import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
+
+const root = import.meta.dirname;
+
+const debugEntries = Object.fromEntries(
+  readdirSync(resolve(root, "debug"))
+    .filter((f) => f.endsWith(".html"))
+    .map((f) => [`debug-${f.replace(".html", "")}`, resolve(root, "debug", f)]),
+);
 
 export default defineConfig({
   base: "/piano/",
@@ -10,9 +19,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(import.meta.dirname, "index.html"),
-        "debug-piano-keyboard": resolve(import.meta.dirname, "debug/piano-keyboard.html"),
-        "debug-components": resolve(import.meta.dirname, "debug/components.html"),
+        main: resolve(root, "index.html"),
+        ...debugEntries,
       },
     },
   },
