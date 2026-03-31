@@ -1,0 +1,305 @@
+/*
+ * Component Classes
+ *
+ * Reusable UI building blocks. Every value references a token — no hardcoded
+ * colors, spacing, or font sizes allowed here.
+ *
+ * These classes are the "vocabulary" Claude and developers should use.
+ * If a pattern isn't here, add it here rather than inlining one-off styles.
+ */
+
+/* ------------------------------------------------
+ * Base reset
+ * ------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ------------------------------------------------
+ * Typography
+ * ------------------------------------------------ */
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg);
+}
+
+h1 {
+  font-size: var(--text-2xl);
+}
+h2 {
+  font-size: var(--text-xl);
+}
+h3 {
+  font-size: var(--text-lg);
+}
+
+p {
+  margin: 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.text-muted {
+  color: var(--fg-muted);
+}
+.text-accent {
+  color: var(--accent-text);
+}
+.text-error {
+  color: var(--color-error);
+}
+.text-success {
+  color: var(--color-success);
+}
+.text-warning {
+  color: var(--color-warning);
+}
+
+/* ------------------------------------------------
+ * Buttons
+ * ------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+  font-size: var(--text-base);
+  line-height: var(--leading-tight);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast),
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: oklch(0.98 0 0);
+  &:hover {
+    background: var(--accent-hover);
+  }
+  &:active {
+    background: var(--accent-active);
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--accent-text);
+  border-color: var(--accent-border);
+  &:hover {
+    background: var(--accent-ghost);
+  }
+  &:active {
+    background: var(--accent-surface);
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--fg);
+  &:hover {
+    background: var(--bg-secondary);
+  }
+  &:active {
+    background: var(--border);
+  }
+}
+
+.btn-sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-sm);
+}
+
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------
+ * Form elements
+ * ------------------------------------------------ */
+.input,
+.select {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+  font-size: var(--text-base);
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast);
+
+  &:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-ghost);
+  }
+
+  &::placeholder {
+    color: var(--fg-muted);
+  }
+}
+
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-sm) center;
+  padding-right: var(--space-xl);
+}
+
+/* ------------------------------------------------
+ * Card
+ * ------------------------------------------------ */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+/* ------------------------------------------------
+ * Dialog
+ * ------------------------------------------------ */
+.dialog {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--fg);
+  max-width: 480px;
+  width: calc(100% - var(--space-xl) * 2);
+
+  &::backdrop {
+    background: oklch(0 0 0 / 0.5);
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* ------------------------------------------------
+ * Badges — status indicators
+ * ------------------------------------------------ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.badge-accent {
+  background: var(--accent-surface);
+  color: var(--accent-text);
+}
+.badge-error {
+  background: var(--color-error-surface);
+  color: var(--color-error);
+}
+.badge-success {
+  background: var(--color-success-surface);
+  color: var(--color-success);
+}
+.badge-warning {
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+}
+.badge-info {
+  background: var(--color-info-surface);
+  color: var(--color-info);
+}
+
+/* ------------------------------------------------
+ * Layout utilities
+ * ------------------------------------------------ */
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.stack-md {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+.row-sm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.row-md {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ------------------------------------------------
+ * Accessibility
+ * ------------------------------------------------ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

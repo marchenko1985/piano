@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": ["WebSearch", "WebFetch", "Edit", "Write", "Glob", "Grep", "Read"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); CWD=$(echo \"$INPUT\" | jq -r '.cwd'); FILE=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // .tool_input.filePath'); cd \"$CWD\" && npx vp fmt \"$FILE\" 2>/dev/null || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

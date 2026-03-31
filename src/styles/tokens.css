@@ -1,0 +1,106 @@
+/*
+ * Design Tokens
+ *
+ * Single source of truth for all visual values.
+ * All colors use oklch() for perceptual uniformity.
+ * Light/dark theming is automatic via light-dark() — no toggle needed.
+ *
+ * To change the brand: update --accent-h, --accent-c, --accent-l.
+ * Everything else derives from these three values.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ------------------------------------------------
+   * Accent — the single brand color
+   * Adjust these three values to rebrand the entire site.
+   * h: hue (0-360), c: chroma (0-0.37), l: lightness (0-1)
+   * ------------------------------------------------ */
+  --accent-h: 264;
+  --accent-c: 0.25;
+  --accent-l: 0.55;
+  --accent: oklch(var(--accent-l) var(--accent-c) var(--accent-h));
+
+  /* Accent variants — derived, never hardcoded */
+  --accent-hover: oklch(from var(--accent) calc(l + 0.08) c h);
+  --accent-active: oklch(from var(--accent) calc(l - 0.08) c h);
+  --accent-surface: oklch(from var(--accent) light-dark(0.96, 0.22) calc(c * 0.15) h);
+  --accent-ghost: oklch(from var(--accent) l c h / 0.12);
+  --accent-border: oklch(from var(--accent) l c h / 0.4);
+  --accent-text: oklch(from var(--accent) light-dark(0.45, 0.82) calc(c * 0.8) h);
+
+  /* ------------------------------------------------
+   * Foreground / Background
+   * ------------------------------------------------ */
+  --fg: light-dark(oklch(0.15 0 0), oklch(0.93 0 0));
+  --fg-muted: light-dark(oklch(0.45 0 0), oklch(0.65 0 0));
+  --bg: light-dark(oklch(0.99 0 0), oklch(0.13 0.005 var(--accent-h)));
+  --bg-secondary: light-dark(oklch(0.96 0.005 var(--accent-h)), oklch(0.18 0.01 var(--accent-h)));
+  --border: light-dark(oklch(0.87 0 0), oklch(0.3 0 0));
+  --border-focus: var(--accent);
+
+  /* ------------------------------------------------
+   * Utility colors
+   * Same lightness & chroma range as accent for visual harmony.
+   * Each gets a -surface variant for backgrounds.
+   * ------------------------------------------------ */
+  --color-error: oklch(var(--accent-l) 0.22 25);
+  --color-error-surface: oklch(from var(--color-error) light-dark(0.96, 0.22) calc(c * 0.15) h);
+
+  --color-success: oklch(var(--accent-l) 0.19 145);
+  --color-success-surface: oklch(from var(--color-success) light-dark(0.96, 0.22) calc(c * 0.15) h);
+
+  --color-warning: oklch(calc(var(--accent-l) + 0.1) 0.18 85);
+  --color-warning-surface: oklch(from var(--color-warning) light-dark(0.96, 0.22) calc(c * 0.15) h);
+
+  --color-info: oklch(var(--accent-l) 0.15 230);
+  --color-info-surface: oklch(from var(--color-info) light-dark(0.96, 0.22) calc(c * 0.15) h);
+
+  /* ------------------------------------------------
+   * Typography — fluid sizes between 320px and 1200px
+   * ------------------------------------------------ */
+  --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --text-sm: clamp(0.8125rem, 0.784rem + 0.114vw, 0.875rem); /* 13→14 */
+  --text-base: clamp(0.9375rem, 0.909rem + 0.114vw, 1rem); /* 15→16 */
+  --text-lg: clamp(1.125rem, 1.04rem + 0.341vw, 1.3125rem); /* 18→21 */
+  --text-xl: clamp(1.5rem, 1.33rem + 0.682vw, 1.875rem); /* 24→30 */
+  --text-2xl: clamp(2rem, 1.66rem + 1.364vw, 2.75rem); /* 32→44 */
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+
+  /* ------------------------------------------------
+   * Spacing — fixed scale
+   * ------------------------------------------------ */
+  --space-xs: 0.25rem; /* 4px */
+  --space-sm: 0.5rem; /* 8px */
+  --space-md: 1rem; /* 16px */
+  --space-lg: 1.5rem; /* 24px */
+  --space-xl: 2rem; /* 32px */
+  --space-2xl: 3rem; /* 48px */
+
+  /* ------------------------------------------------
+   * Border radius
+   * ------------------------------------------------ */
+  --radius-sm: 0.25rem; /* 4px */
+  --radius-md: 0.5rem; /* 8px */
+  --radius-lg: 0.75rem; /* 12px */
+
+  /* ------------------------------------------------
+   * Shadows — theme-aware
+   * ------------------------------------------------ */
+  --shadow-sm: 0 1px 3px light-dark(oklch(0 0 0 / 0.08), oklch(0 0 0 / 0.3));
+  --shadow-md: 0 4px 12px light-dark(oklch(0 0 0 / 0.1), oklch(0 0 0 / 0.4));
+
+  /* ------------------------------------------------
+   * Transitions
+   * ------------------------------------------------ */
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+}
