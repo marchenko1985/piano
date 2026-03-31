@@ -87,6 +87,96 @@ For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/
 - [ ] Run `vp check` and `vp test` to validate changes.
 <!--VITE PLUS END-->
 
+# Project Context
+
+This is a rewrite of a vanilla JS piano practice app (originally at `~/Downloads/chords/`) as a modern TypeScript + Vite+ static site deployed to GitHub Pages at `/piano/`.
+
+## What We're Building
+
+A collection of browser-based mini-games for learning piano chords, intervals, and rhythm using MIDI keyboard input. The old project was vanilla JS with global namespace, inline scripts, and no build step. We are porting it feature-by-feature into this TypeScript + Vite+ project.
+
+## Porting Approach
+
+- **One feature at a time** — we port, review, and agree on patterns as we go.
+- **Full TypeScript** — all old JS code gets rewritten as proper TypeScript with types and interfaces.
+- **ES modules** — no global namespace; everything uses proper imports/exports.
+- **Rethink as we go** — each feature is revisited; some may be redesigned or dropped.
+- **Old source reference** — original code lives at `~/Downloads/chords/` for reference.
+
+## Development & Preview
+
+- **Dev server**: `npm run dev` starts Vite+ on localhost.
+- **DO NOT use Claude Desktop built-in preview** — it does not support permission-gated Web APIs (MIDI, geolocation, notifications, etc.) and will silently fail. Always use **Chrome DevTools MCP** instead.
+- **Preview workflow**: Start the dev server, then use `mcp__chrome-devtools__navigate_page` to open the page in Chrome so both you and the user can see it.
+- **Debugging**: Use Chrome DevTools MCP to check console logs and runtime errors.
+
+## Architecture
+
+- **Web Components** — `<piano-keyboard>`, `<session-progress>` etc. are Custom Elements with Shadow DOM, rewritten in TypeScript.
+- **Shared modules** — `src/` contains reusable modules (chords, MIDI, session, voice-leading, audio, sheet music).
+- **Multi-page app** — each game/tool is a separate HTML entry point, configured in `vite.config.ts` `rollupOptions.input`.
+- **Debug pages** — `debug/*.html` pages for testing components in isolation. Each has a corresponding `src/debug/*.ts` entry.
+- **MIDI input** — Web MIDI API for real-time keyboard input.
+- **Audio** — Web Audio API for sound synthesis.
+
+## Coding Conventions
+
+### Pages & Layout
+
+- All pages use `<div id="app">` as root, with `app.className = "page stack-lg"` applied in JS.
+- `.page` handles max-width, centering, padding, and min-height. Do NOT add styles to `#app` — use `.page` instead.
+- Use `stack-sm`/`stack-md`/`stack-lg` for vertical spacing within sections. Never leave elements without spacing.
+- Use `center` class on flex rows to center buttons/controls.
+- `text-align: center` is inherited from `.page` — headings and text center automatically.
+
+### Styling
+
+- **Never hardcode** colors, spacing, font sizes, or gaps — always use design tokens (`--space-*`, `--text-*`, `--fg-muted`, etc.).
+- **Never invent UI elements** — use existing component classes (`.btn`, `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.badge`, `.card`, etc.).
+- For inline labels next to button rows, use plain `<span class="text-muted">` — not button-styled elements (avoid misleading affordances).
+- Piano keyboards use `width` + `max-width: 100%` + `margin: 0 auto` when they need to be narrower than the container.
+
+### Components
+
+- Web Components use Shadow DOM with inline `<style>` blocks.
+- The `<piano-keyboard>` component auto-hides octave numbers on C keys when keys are too narrow (< 25px).
+
+## Old Project Features (for porting reference)
+
+### Core Modules
+
+- `chords.js` — chord data, 24 triads, 35 progressions, chord parsing (5 formats), MIDI↔note conversion
+- `voice-leading.js` — inversion generation, distance calculation, optimal voice leading
+- `midi.js` — MIDI device detection, note on/off routing
+- `session.js` — timed practice sessions, progress tracking, inactivity timeout
+- `audio.js` — Web Audio synthesis, note/chord playback
+- `sheet.js` — VexFlow wrapper for music notation rendering
+
+### Web Components
+
+- `<piano-keyboard>` — 88-key piano, color states (gray/yellow/orange/red/green), Shadow DOM
+- `<session-progress>` — progress bar with CSS variable animation
+
+### Games
+
+- `random.html` — timed random chord practice (3 min), 3 difficulty levels, hand selection
+- `sequence.html` — custom/preset chord sequences, voice leading toggle, left hand bass
+- `notes.html` — single note sight-reading from sheet music
+- `intervals.html` — harmonic interval recognition from sheet music
+- `rhythm.html` — rhythm pattern practice with timing validation
+- `rhythm_v2/` — progressive 22-chapter rhythm curriculum
+
+### Reference Tools
+
+- `piano.html` — chord visualization with inversion controls
+- `invert.html` — voice leading path explorer
+- `scale-chords.html` — find scales containing given chords
+- `visualize-notes.html` — note position learning
+
+### Cheat Sheets
+
+- `interval.html`, `scales.html`, `roman.html` — static reference pages
+
 <!--DESIGN SYSTEM START-->
 
 # Design System
@@ -142,7 +232,7 @@ This project uses a token-based design system. All visual values are defined as 
 
 ### Layout
 
-`.card` — surface container. `.dialog` — modal styling for `<dialog>`.
+`.page` — page container (max-width, centered, padded, min-height). `.card` — surface container. `.dialog` — modal styling for `<dialog>`.
 
 ### Badges
 

@@ -34,7 +34,7 @@
    * Foreground / Background
    * ------------------------------------------------ */
   --fg: light-dark(oklch(0.15 0 0), oklch(0.93 0 0));
-  --fg-muted: light-dark(oklch(0.45 0 0), oklch(0.65 0 0));
+  --fg-muted: light-dark(oklch(0.7 0 0), oklch(0.5 0 0));
   --bg: light-dark(oklch(0.99 0 0), oklch(0.13 0.005 var(--accent-h)));
   --bg-secondary: light-dark(oklch(0.96 0.005 var(--accent-h)), oklch(0.18 0.01 var(--accent-h)));
   --border: light-dark(oklch(0.87 0 0), oklch(0.3 0 0));
