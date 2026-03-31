@@ -290,6 +290,36 @@ code {
 }
 
 /* ------------------------------------------------
+ * Progress bar (native <progress>)
+ * ------------------------------------------------ */
+progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+progress::-webkit-progress-bar {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  transition: width var(--duration-normal) ease;
+}
+
+progress::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+/* ------------------------------------------------
  * Page container
  * ------------------------------------------------ */
 .page {

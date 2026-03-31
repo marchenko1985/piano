@@ -12,8 +12,9 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 
 ## Phase 2: First Game
 
-- [ ] **Session module** — timed sessions, progress tracking, inactivity timeout
-- [ ] **`<session-progress>` component** — progress bar
+- [x] **Session module** — timed sessions, progress tracking, inactivity timeout
+- [x] **Progress bar** — native `<progress>` styled with design tokens (replaced web component)
+- [x] **Session test page** (`debug/session.html`) — timer controls, progress demo
 - [ ] **Random chord game** (`random.html`) — timed practice, difficulty levels, hand selection
 
 ## Phase 3: More Games

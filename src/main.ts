@@ -12,6 +12,7 @@ app.innerHTML = `
     <ul>
       <li><a href="/piano/debug/piano-keyboard.html">Piano Keyboard</a> — component test page</li>
       <li><a href="/piano/debug/chords.html">Chords</a> — chord parsing, building, and lookup</li>
+      <li><a href="/piano/debug/session.html">Session</a> — timer, progress bar, inactivity timeout</li>
       <li><a href="/piano/debug/components.html">Components</a> — design system showcase</li>
     </ul>
   </section>
