@@ -10,6 +10,13 @@ const debugEntries = Object.fromEntries(
     .map((f) => [`debug-${f.replace(".html", "")}`, resolve(root, "debug", f)]),
 );
 
+/** Root-level HTML pages (games/tools) excluding index.html. */
+const pageEntries = Object.fromEntries(
+  readdirSync(root)
+    .filter((f) => f.endsWith(".html") && f !== "index.html")
+    .map((f) => [f.replace(".html", ""), resolve(root, f)]),
+);
+
 export default defineConfig({
   base: "/piano/",
   staged: {
@@ -20,6 +27,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(root, "index.html"),
+        ...pageEntries,
         ...debugEntries,
       },
     },

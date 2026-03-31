@@ -8,6 +8,13 @@ app.innerHTML = `
   <p class="text-muted">A collection of mini-games for learning piano with a MIDI keyboard.</p>
 
   <section class="stack-sm">
+    <h2>Games</h2>
+    <ul>
+      <li><a href="/piano/random.html">Random Chords</a> — timed chord practice with progressions</li>
+    </ul>
+  </section>
+
+  <section class="stack-sm">
     <h2>Debug</h2>
     <ul>
       <li><a href="/piano/debug/piano-keyboard.html">Piano Keyboard</a> — component test page</li>
