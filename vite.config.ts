@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  base: "/piano/",
   staged: {
     "*": "vp check --fix",
   },
