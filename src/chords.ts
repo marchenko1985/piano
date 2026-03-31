@@ -136,6 +136,114 @@ export const PROGRESSIONS: readonly (readonly string[])[] = [
   ["B", "G#m", "E", "F#"],
 ];
 
+/**
+ * Song structures with verse + chorus progressions.
+ * Each entry has a verse (4 chords) and chorus (4 chords) that pair well
+ * together musically — the chorus feels like an arrival/lift from the verse.
+ * Based on common pop/rock songwriting patterns in all 12 keys.
+ */
+export interface SongStructure {
+  readonly pattern: string;
+  readonly key: string;
+  readonly verse: readonly string[];
+  readonly chorus: readonly string[];
+}
+
+interface SongPattern {
+  readonly id: string;
+  readonly name: string;
+  readonly verse: readonly string[];
+  readonly chorus: readonly string[];
+}
+
+/** Roman numeral patterns — verse and chorus pairings that sound like real songs. */
+const SONG_PATTERNS: readonly SongPattern[] = [
+  {
+    id: "pop-anthem",
+    name: "Pop anthem",
+    verse: ["vi", "IV", "I", "V"],
+    chorus: ["IV", "V", "I", "vi"],
+  },
+  {
+    id: "singer-songwriter",
+    name: "Singer-songwriter",
+    verse: ["I", "V", "vi", "IV"],
+    chorus: ["IV", "V", "vi", "I"],
+  },
+  {
+    id: "classic-rock",
+    name: "Classic rock",
+    verse: ["I", "vi", "IV", "V"],
+    chorus: ["I", "IV", "V", "IV"],
+  },
+  {
+    id: "pop-ballad",
+    name: "Pop ballad",
+    verse: ["ii", "IV", "I", "V"],
+    chorus: ["IV", "I", "V", "vi"],
+  },
+  {
+    id: "alt-rock",
+    name: "Alt-rock",
+    verse: ["vi", "IV", "V", "I"],
+    chorus: ["I", "V", "IV", "V"],
+  },
+  {
+    id: "soft-pop",
+    name: "Soft pop",
+    verse: ["I", "iii", "IV", "V"],
+    chorus: ["IV", "V", "I", "vi"],
+  },
+  {
+    id: "folk-rock",
+    name: "Folk-rock",
+    verse: ["I", "IV", "vi", "V"],
+    chorus: ["I", "IV", "I", "V"],
+  },
+  {
+    id: "jazz-pop",
+    name: "Jazz-pop",
+    verse: ["vi", "ii", "V", "I"],
+    chorus: ["I", "V", "vi", "IV"],
+  },
+];
+
+/** Pattern id → display label, for building UI dropdowns. */
+export const SONG_PATTERN_LIST: readonly { id: string; label: string }[] = SONG_PATTERNS.map(
+  ({ id, name, verse, chorus }) => ({
+    id,
+    label: `${name} (${verse.join("-")} → ${chorus.join("-")})`,
+  }),
+);
+
+/** Map Roman numeral degree to chord name in a given key. */
+const DEGREE_MAP: Record<string, { offset: number; quality: "maj" | "m" }> = {
+  I: { offset: 0, quality: "maj" },
+  ii: { offset: 2, quality: "m" },
+  iii: { offset: 4, quality: "m" },
+  IV: { offset: 5, quality: "maj" },
+  V: { offset: 7, quality: "maj" },
+  vi: { offset: 9, quality: "m" },
+};
+
+function degreeToChordName(degree: string, rootIndex: number): string {
+  const deg = DEGREE_MAP[degree];
+  if (!deg) return "C";
+  const noteIndex = (rootIndex + deg.offset) % 12;
+  const name = NOTE_NAMES[noteIndex];
+  return deg.quality === "m" ? `${name}m` : name;
+}
+
+/** All song structures across all 12 keys. */
+export const SONG_STRUCTURES: readonly SongStructure[] = NOTE_NAMES.flatMap((root, rootIndex) =>
+  SONG_PATTERNS.map((pat) => ({
+    pattern: pat.id,
+    key: root,
+    verse: pat.verse.map((deg) => degreeToChordName(deg, rootIndex)),
+    chorus: pat.chorus.map((deg) => degreeToChordName(deg, rootIndex)),
+  })),
+);
+
 /** Fingering patterns keyed by interval structure. */
 export const FINGERING_PATTERNS: Record<string, readonly number[]> = {
   "4,3": [1, 3, 5], // Major (M3 + m3)

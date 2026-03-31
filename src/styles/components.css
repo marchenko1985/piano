@@ -198,6 +198,10 @@ code {
 /* ------------------------------------------------
  * Dialog
  * ------------------------------------------------ */
+dialog:not([open]) {
+  display: none;
+}
+
 .dialog {
   background: var(--bg);
   border: 1px solid var(--border);

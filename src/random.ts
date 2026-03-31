@@ -1,6 +1,14 @@
 import "./style.css";
 import "./components/piano-keyboard.ts";
-import { BASE_CHORDS, PROGRESSIONS, midiToNoteName, transposeChords } from "./chords.ts";
+import {
+  BASE_CHORDS,
+  PROGRESSIONS,
+  SONG_PATTERN_LIST,
+  SONG_STRUCTURES,
+  midiToNoteName,
+  transposeChords,
+} from "./chords.ts";
+import type { SongStructure } from "./chords.ts";
 import { MIDIManager } from "./midi.ts";
 import { Session } from "./session.ts";
 
@@ -25,56 +33,50 @@ for (const prog of PROGRESSIONS) {
     (NEXT_CHORDS[cur] ??= []).push(nxt);
   }
 }
-// Deduplicate
 for (const key of Object.keys(NEXT_CHORDS)) {
   NEXT_CHORDS[key] = [...new Set(NEXT_CHORDS[key])];
-}
-
-// ── Simple audio feedback ────────────────────────────────────────────
-
-let audioCtx: AudioContext | null = null;
-
-function ensureAudio(): AudioContext {
-  if (!audioCtx) audioCtx = new AudioContext();
-  return audioCtx;
-}
-
-function playRootNote(midiNote: number): void {
-  const ctx = ensureAudio();
-  if (ctx.state !== "running") void ctx.resume();
-
-  const freq = 440 * 2 ** ((midiNote - 69) / 12);
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  osc.type = "sine";
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.001, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-
-  osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.4);
 }
 
 // ── DOM ──────────────────────────────────────────────────────────────
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.className = "page stack-lg";
+app.style.justifyContent = "center";
 
 app.innerHTML = `
   <div class="row-sm center" style="flex-wrap: wrap">
     <span class="text-muted">MIDI:</span>
     <span id="midi-status" class="text-muted">initializing...</span>
-    <span class="text-muted" style="margin-left: var(--space-md)">Hand:</span>
-    <label><input type="radio" name="hand" value="left" /> left</label>
-    <label><input type="radio" name="hand" value="right" checked /> right</label>
-    <label><input type="radio" name="hand" value="both" /> both</label>
-    <label style="margin-left: var(--space-md)"><input type="checkbox" id="highlight-cb" checked /> Highlight</label>
+
+    <select id="preset-select" class="select" style="width: 10em; margin-left: var(--space-md)">
+      <option value="all">All chords</option>
+      <option value="major">Major</option>
+      <option value="minor">Minor</option>
+      <option value="progression">Progression</option>
+      <optgroup label="Verse + Chorus"></optgroup>
+    </select>
+
+    <select id="hand-select" class="select" style="width: auto">
+      <option value="right">Right hand</option>
+      <option value="left">Left hand</option>
+      <option value="both">Both hands</option>
+    </select>
+
+    <select id="duration-select" class="select" style="width: auto">
+      <option value="60000">1 min</option>
+      <option value="120000">2 min</option>
+      <option value="180000" selected>3 min</option>
+      <option value="300000">5 min</option>
+      <option value="600000">10 min</option>
+    </select>
+
+    <label><input type="checkbox" id="highlight-cb" checked /> Highlight</label>
+
+    <button class="btn btn-primary" id="start-btn">Start</button>
   </div>
 
   <div class="stack-sm">
+    <div id="section-label" class="text-accent" style="font-size: var(--text-sm); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em">&nbsp;</div>
     <div id="chord-name" style="font-size: var(--text-2xl); font-weight: bold"></div>
     <div id="chord-notes" class="text-muted"></div>
     <div id="active-hand" class="text-muted" style="font-style: italic"></div>
@@ -82,7 +84,7 @@ app.innerHTML = `
 
   <piano-keyboard id="piano" start="48" end="83" style="height: 150px"></piano-keyboard>
 
-  <div id="pressed" class="text-muted"></div>
+  <div id="pressed" class="text-muted">&nbsp;</div>
 
   <progress id="progress" max="100" value="0"></progress>
 
@@ -96,12 +98,13 @@ app.innerHTML = `
       <tr><th style="text-align: right; padding-right: var(--space-sm)">Speed</th><td id="stat-speed">0.0 cpm</td></tr>
     </table>
     <div style="text-align: center">
-      <button class="btn btn-primary" id="restart-btn">Play Again</button>
+      <button class="btn btn-primary" id="close-btn">Close</button>
     </div>
   </dialog>
 `;
 
 const piano = document.getElementById("piano")!;
+const sectionLabelEl = document.getElementById("section-label")!;
 const chordNameEl = document.getElementById("chord-name")!;
 const chordNotesEl = document.getElementById("chord-notes")!;
 const activeHandEl = document.getElementById("active-hand")!;
@@ -110,13 +113,61 @@ const midiStatusEl = document.getElementById("midi-status")!;
 const highlightCb = document.getElementById("highlight-cb") as HTMLInputElement;
 const progressEl = document.getElementById("progress") as HTMLProgressElement;
 const resultsDialog = document.getElementById("results") as HTMLDialogElement;
+const startBtn = document.getElementById("start-btn") as HTMLButtonElement;
+const handSelect = document.getElementById("hand-select") as HTMLSelectElement;
+const durationSelect = document.getElementById("duration-select") as HTMLSelectElement;
+const presetSelect = document.getElementById("preset-select") as HTMLSelectElement;
+
+// ── Populate song pattern options ────────────────────────────────────
+
+const songOptgroup = presetSelect.querySelector("optgroup")!;
+for (const { id, label } of SONG_PATTERN_LIST) {
+  const opt = document.createElement("option");
+  opt.value = `song:${id}`;
+  opt.textContent = label;
+  songOptgroup.appendChild(opt);
+}
+
+// ── Chord presets ────────────────────────────────────────────────────
+
+type Preset = "all" | "major" | "minor" | "progression" | `song:${string}`;
+
+const MAJOR_CHORDS: Record<string, readonly number[]> = Object.fromEntries(
+  Object.entries(BASE_CHORDS).filter(([name]) => !name.includes("m")),
+);
+
+const MINOR_CHORDS: Record<string, readonly number[]> = Object.fromEntries(
+  Object.entries(BASE_CHORDS).filter(([name]) => name.includes("m")),
+);
+
+function getChordsForPreset(preset: Preset): Record<string, readonly number[]> {
+  if (preset === "major") return MAJOR_CHORDS;
+  if (preset === "minor") return MINOR_CHORDS;
+  return BASE_CHORDS;
+}
 
 // ── Game state ───────────────────────────────────────────────────────
 
+let preset: Preset = "all";
 let handMode: Hand = "right";
 let activeHand: "left" | "right" = "right";
 let chords: Record<string, readonly number[]> = { ...BASE_CHORDS };
 const leftChords: Record<string, readonly number[]> = transposeChords(-12);
+const leftMajor: Record<string, readonly number[]> = Object.fromEntries(
+  Object.entries(leftChords).filter(([name]) => !name.includes("m")),
+);
+const leftMinor: Record<string, readonly number[]> = Object.fromEntries(
+  Object.entries(leftChords).filter(([name]) => name.includes("m")),
+);
+
+let activeProgression: readonly string[] | null = null;
+let progressionIndex = 0;
+
+// Song mode state: Verse(x2) → Chorus(x1) → repeat
+let activeSong: SongStructure | null = null;
+type SongSection = "verse1" | "verse2" | "chorus";
+let songSection: SongSection = "verse1";
+let songChordIndex = 0;
 
 let expectedName = "";
 let expectedNotes: readonly number[] = [];
@@ -128,7 +179,7 @@ let tempHighlight = false;
 const HELP_THRESHOLD = 5;
 
 const stats: Stats = { chordsPlayed: 0, notesPlayed: 0, correctNotes: 0, incorrectNotes: 0 };
-let sessionActive = true;
+let gameRunning = false;
 
 // ── Session ──────────────────────────────────────────────────────────
 
@@ -137,7 +188,7 @@ let statsInterval: ReturnType<typeof setInterval> | null = null;
 
 function createSession(): Session {
   return new Session({
-    totalDuration: 180_000,
+    totalDuration: Number(durationSelect.value),
     inactivityTimeout: 30_000,
     progressElement: progressEl,
     onEnd: endSession,
@@ -145,8 +196,8 @@ function createSession(): Session {
 }
 
 function endSession(): void {
-  if (!sessionActive) return;
-  sessionActive = false;
+  if (!gameRunning) return;
+  gameRunning = false;
 
   if (statsInterval) {
     clearInterval(statsInterval);
@@ -154,6 +205,7 @@ function endSession(): void {
   }
 
   updateStatsDisplay();
+  updateStartButton();
   resultsDialog.showModal();
 }
 
@@ -176,40 +228,134 @@ function updateStatsDisplay(): void {
   document.getElementById("stat-speed")!.textContent = `${cpm} cpm`;
 }
 
-// ── Chord picking ────────────────────────────────────────────────────
+// ── Start / Stop ─────────────────────────────────────────────────────
 
-function updateChordsForHand(hand: "left" | "right"): void {
-  chords = hand === "left" ? leftChords : { ...BASE_CHORDS };
+function updateStartButton(): void {
+  startBtn.textContent = gameRunning ? "Stop" : "Start";
+  presetSelect.disabled = gameRunning;
+  handSelect.disabled = gameRunning;
+  durationSelect.disabled = gameRunning;
 }
 
-function pickRandom<T>(arr: T[]): T {
+function startGame(): void {
+  stats.chordsPlayed = 0;
+  stats.notesPlayed = 0;
+  stats.correctNotes = 0;
+  stats.incorrectNotes = 0;
+  gameRunning = true;
+  pressedNotes.clear();
+  hasWon = false;
+  chordCounter = 0;
+  incorrectPressCount = 0;
+  tempHighlight = false;
+
+  session?.destroy();
+  session = createSession();
+  session.start();
+
+  if (statsInterval) clearInterval(statsInterval);
+  statsInterval = setInterval(() => {
+    if (session?.started) updateStatsDisplay();
+  }, 1000);
+
+  preset = presetSelect.value as Preset;
+  activeProgression = null;
+  progressionIndex = 0;
+  activeSong = null;
+  songSection = "verse1";
+  songChordIndex = 0;
+
+  updateStartButton();
+  pickRandomChord();
+}
+
+function stopGame(): void {
+  endSession();
+}
+
+startBtn.addEventListener("click", () => {
+  if (gameRunning) stopGame();
+  else startGame();
+});
+
+// ── Chord picking ────────────────────────────────────────────────────
+
+function getChordsForHand(hand: "left" | "right"): Record<string, readonly number[]> {
+  if (hand === "left") {
+    if (preset === "major") return leftMajor;
+    if (preset === "minor") return leftMinor;
+    return leftChords;
+  }
+  if (preset.startsWith("song:") || preset === "progression") return BASE_CHORDS;
+  return getChordsForPreset(preset);
+}
+
+function pickRandom<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function advanceSongSection(): void {
+  songChordIndex++;
+  const sectionLength = activeSong
+    ? (songSection === "chorus" ? activeSong.chorus : activeSong.verse).length
+    : 4;
+
+  if (songChordIndex >= sectionLength) {
+    songChordIndex = 0;
+    if (songSection === "verse1") songSection = "verse2";
+    else if (songSection === "verse2") songSection = "chorus";
+    else songSection = "verse1";
+  }
+}
+
+function pickNextSongChord(): string {
+  if (!activeSong) {
+    const patternId = preset.slice(5); // strip "song:" prefix
+    const candidates = SONG_STRUCTURES.filter((s) => s.pattern === patternId);
+    activeSong = pickRandom(candidates.length > 0 ? candidates : SONG_STRUCTURES);
+  }
+
+  const section = songSection === "chorus" ? activeSong.chorus : activeSong.verse;
+  return section[songChordIndex];
+}
+
+function pickNextProgressionChord(): string {
+  if (!activeProgression) activeProgression = pickRandom(PROGRESSIONS);
+
+  // Loop the same progression (not pick a new one)
+  const chord = activeProgression[progressionIndex];
+  progressionIndex = (progressionIndex + 1) % activeProgression.length;
+  return chord;
+}
+
 function pickRandomChord(): void {
-  // Choose hand for this chord
   activeHand =
     handMode === "both" ? (Math.random() < 0.5 ? "left" : "right") : (handMode as "left" | "right");
-  updateChordsForHand(activeHand);
+  chords = getChordsForHand(activeHand);
 
-  const names = Object.keys(chords);
   let next: string;
 
-  // Every 8th chord, break progression loops
-  const shouldBreak = chordCounter > 0 && chordCounter % 8 === 0;
-
-  if (shouldBreak || !expectedName) {
-    do {
-      next = pickRandom(names);
-    } while (next === expectedName && names.length > 1);
+  if (preset.startsWith("song:")) {
+    next = pickNextSongChord();
+  } else if (preset === "progression") {
+    next = pickNextProgressionChord();
   } else {
-    const candidates = (NEXT_CHORDS[expectedName] ?? []).filter((c) => names.includes(c));
-    if (candidates.length > 0) {
-      next = pickRandom(candidates);
-    } else {
+    const names = Object.keys(chords);
+    const shouldBreak = chordCounter > 0 && chordCounter % 8 === 0;
+
+    if (shouldBreak || !expectedName) {
       do {
         next = pickRandom(names);
       } while (next === expectedName && names.length > 1);
+    } else {
+      const candidates = (NEXT_CHORDS[expectedName] ?? []).filter((c) => names.includes(c));
+      if (candidates.length > 0) {
+        next = pickRandom(candidates);
+      } else {
+        do {
+          next = pickRandom(names);
+        } while (next === expectedName && names.length > 1);
+      }
     }
   }
 
@@ -220,12 +366,26 @@ function pickRandomChord(): void {
   tempHighlight = false;
 
   updateDisplay();
-  playRootNote(expectedNotes[0]);
+
+  // Advance song/progression index *after* display so the label matches the current chord
+  if (preset.startsWith("song:")) advanceSongSection();
 }
 
 // ── Display ──────────────────────────────────────────────────────────
 
+function getSectionLabel(): string {
+  if (preset.startsWith("song:")) {
+    if (songSection === "chorus") return "Chorus";
+    return "Verse";
+  }
+  if (preset === "progression" && activeProgression) return "Progression";
+  return "";
+}
+
 function updateDisplay(): void {
+  const label = getSectionLabel();
+  sectionLabelEl.textContent = label || "\u00A0";
+
   chordNameEl.textContent = expectedName;
   chordNotesEl.textContent = expectedNotes.map(midiToNoteName).join(", ");
   activeHandEl.textContent = handMode === "both" ? `(${activeHand} hand)` : "";
@@ -248,13 +408,13 @@ function updateDisplay(): void {
     .sort((a, b) => a - b)
     .map(midiToNoteName)
     .join(", ");
-  pressedEl.textContent = pressedNames ? `Pressed: ${pressedNames}` : "";
+  pressedEl.textContent = pressedNames ? `Pressed: ${pressedNames}` : "\u00A0";
 }
 
 // ── Win check ────────────────────────────────────────────────────────
 
 function checkWin(): void {
-  if (hasWon || !sessionActive) return;
+  if (hasWon || !gameRunning) return;
 
   const allPressed = expectedNotes.every((n) => pressedNotes.has(n));
   const noExtra = pressedNotes.size === expectedNotes.length;
@@ -264,7 +424,7 @@ function checkWin(): void {
     stats.chordsPlayed++;
 
     setTimeout(() => {
-      if (!sessionActive) return;
+      if (!gameRunning) return;
       pressedNotes.clear();
       hasWon = false;
       pickRandomChord();
@@ -275,14 +435,12 @@ function checkWin(): void {
 // ── MIDI handling ────────────────────────────────────────────────────
 
 function onMIDIMessage(event: MIDIMessageEvent): void {
-  if (!sessionActive) return;
+  if (!gameRunning) return;
 
   const [status, note, velocity] = event.data!;
   const command = status >> 4;
 
   if (command === 9 && velocity > 0) {
-    // Start session on first keypress
-    if (session && !session.started) session.start();
     session?.activity();
 
     const wasPressed = pressedNotes.has(note);
@@ -296,7 +454,6 @@ function onMIDIMessage(event: MIDIMessageEvent): void {
         stats.incorrectNotes++;
       }
 
-      // Auto-help after too many wrong presses
       if (!highlightCb.checked && !tempHighlight && !expectedNotes.includes(note)) {
         incorrectPressCount++;
         if (incorrectPressCount >= HELP_THRESHOLD) tempHighlight = true;
@@ -311,62 +468,59 @@ function onMIDIMessage(event: MIDIMessageEvent): void {
   checkWin();
 }
 
-// ── Hand selection ───────────────────────────────────────────────────
+// ── Settings ─────────────────────────────────────────────────────────
 
-const saved = localStorage.getItem("random-hand");
-if (saved) {
-  const radio = document.querySelector<HTMLInputElement>(`input[name="hand"][value="${saved}"]`);
-  if (radio) {
-    radio.checked = true;
-    handMode = saved as Hand;
+const savedPreset = localStorage.getItem("random-preset");
+if (savedPreset) {
+  presetSelect.value = savedPreset;
+  // If the saved value doesn't match any option, reset to "all"
+  if (presetSelect.value !== savedPreset) {
+    presetSelect.value = "all";
+    localStorage.removeItem("random-preset");
   }
+  preset = presetSelect.value as Preset;
 }
 
-for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="hand"]')) {
-  radio.addEventListener("change", () => {
-    handMode = radio.value as Hand;
-    localStorage.setItem("random-hand", handMode);
+presetSelect.addEventListener("change", () => {
+  preset = presetSelect.value as Preset;
+  localStorage.setItem("random-preset", preset);
+  if (!gameRunning) {
     pressedNotes.clear();
-    hasWon = false;
     expectedName = "";
     chordCounter = 0;
-    incorrectPressCount = 0;
-    tempHighlight = false;
+    activeProgression = null;
+    progressionIndex = 0;
+    activeSong = null;
+    songSection = "verse1";
+    songChordIndex = 0;
     pickRandomChord();
-  });
+  }
+});
+
+const savedHand = localStorage.getItem("random-hand");
+if (savedHand) {
+  handSelect.value = savedHand;
+  handMode = savedHand as Hand;
 }
+
+handSelect.addEventListener("change", () => {
+  handMode = handSelect.value as Hand;
+  localStorage.setItem("random-hand", handMode);
+  if (!gameRunning) {
+    pressedNotes.clear();
+    expectedName = "";
+    chordCounter = 0;
+    pickRandomChord();
+  }
+});
 
 highlightCb.addEventListener("change", updateDisplay);
 
 // ── Restart ──────────────────────────────────────────────────────────
 
-document.getElementById("restart-btn")!.addEventListener("click", () => {
+document.getElementById("close-btn")!.addEventListener("click", () => {
   resultsDialog.close();
-  resetGame();
 });
-
-function resetGame(): void {
-  stats.chordsPlayed = 0;
-  stats.notesPlayed = 0;
-  stats.correctNotes = 0;
-  stats.incorrectNotes = 0;
-  sessionActive = true;
-  pressedNotes.clear();
-  hasWon = false;
-  chordCounter = 0;
-  incorrectPressCount = 0;
-  tempHighlight = false;
-
-  session?.destroy();
-  session = createSession();
-
-  if (statsInterval) clearInterval(statsInterval);
-  statsInterval = setInterval(() => {
-    if (session?.started) updateStatsDisplay();
-  }, 1000);
-
-  pickRandomChord();
-}
 
 // ── Init ─────────────────────────────────────────────────────────────
 
@@ -374,11 +528,9 @@ const midiManager = new MIDIManager({
   onMessage: onMIDIMessage,
   onConnectionChange: (connected, deviceName) => {
     midiStatusEl.textContent = connected ? deviceName : "not connected";
-    if (connected) resetGame();
-    else session?.pause();
+    if (!connected) session?.pause();
   },
 });
 
-// Show first chord but don't create session until MIDI connects
 pickRandomChord();
 void midiManager.initialize();

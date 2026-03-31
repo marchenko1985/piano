@@ -149,6 +149,15 @@ A collection of browser-based mini-games for learning piano chords, intervals, a
 - Each debug page needs a corresponding `src/debug/*.ts` entry script.
 - Update `src/main.ts` index links when adding new pages.
 
+### Game Presets & Modes
+
+- Game modes use a single `<select>` with `<optgroup>` for categorized options (e.g., basic modes + "Verse + Chorus" song patterns).
+- Preset values use namespaced strings for structured modes: `"song:pop-anthem"`, `"song:classic-rock"` etc. Parse with `preset.startsWith("song:")` and `preset.slice(5)`.
+- Song patterns are defined in `src/chords.ts` as `SONG_PATTERNS` with Roman numeral degrees, then transposed to all 12 keys via `SONG_STRUCTURES`.
+- Song mode uses Verse(x2) → Chorus(x1) loop structure. Section state advances _after_ `updateDisplay()` so the label matches the current chord.
+- Progression mode loops the same 4-chord progression (not random chaining) for recognizable repetition.
+- Game settings (preset, hand, duration) are saved/restored from localStorage. Handle stale values gracefully — if a saved value doesn't match any option, reset to default.
+
 ### UI Consistency
 
 - When an input and button share a row, they should be the same visual weight — don't use `btn-sm` next to a full-size input.
