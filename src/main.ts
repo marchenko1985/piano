@@ -13,6 +13,7 @@ app.innerHTML = `
       <li><a href="/piano/random.html">Random Chords</a> — timed chord practice with progressions</li>
       <li><a href="/piano/inversions.html">Inversions</a> — chord inversion practice with voice leading</li>
       <li><a href="/piano/sequence.html">Sequence</a> — custom chord sequence practice</li>
+      <li><a href="/piano/invert.html">Inversion Explorer</a> — find optimal voicings for chord progressions</li>
     </ul>
   </section>
 

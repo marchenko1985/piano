@@ -21,7 +21,8 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 
 - [x] **Voice-leading module** — inversion generation, optimal voice leading, slash notation
 - [x] **Inversions game** (`inversions.html`) — root→inversion practice (1st/2nd), song patterns with voice-led progressions
-- [ ] **Sequence game** (`sequence.html`) — custom/preset sequences, voice leading toggle (may overlap with inversions song mode — revisit)
+- [x] **Sequence game** (`sequence.html`) — custom/preset sequences, voice leading toggle, grid visualization, loop support
+- [x] **Fingering hints** — context-aware finger numbers (1-5) on piano keyboard, common-tone retention across chord transitions
 - [x] **Audio module** — Web Audio oscillator synthesis, SoundFont piano samples, metronome
 - [ ] **Sheet music module** — VexFlow wrapper for notation rendering
 - [ ] **Notes game** (`notes.html`) — single note sight-reading
@@ -34,7 +35,7 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 
 ## Phase 5: Reference Tools
 
-- [ ] **Inversion explorer** (`invert.html`) — voice leading path visualization
+- [x] **Inversion explorer** (`invert.html`) — voice leading path visualization, brute-force optimal paths with deduplication
 - [ ] **Scale finder** (`scale-chords.html`) — find scales for given chords (candidate for mini game, not just reference)
 - [ ] **Note visualizer** (`visualize-notes.html`)
 
