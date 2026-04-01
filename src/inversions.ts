@@ -1,15 +1,22 @@
 import "./style.css";
 import "./components/piano-keyboard.ts";
-import { BASE_CHORDS, midiToNoteName, transposeChords } from "./chords.ts";
-import { getInversionLabel } from "./voice-leading.ts";
+import {
+  BASE_CHORDS,
+  SONG_PATTERN_LIST,
+  SONG_STRUCTURES,
+  midiToNoteName,
+  transposeChords,
+} from "./chords.ts";
+import type { SongStructure } from "./chords.ts";
+import { findClosestInversion, getInversionLabel, voiceLeadProgression } from "./voice-leading.ts";
 import { MIDIManager } from "./midi.ts";
 import { Session } from "./session.ts";
 
 // ── Types ────────────────────────────────────────────────────────────
 
 type Hand = "left" | "right" | "both";
-type Preset = "all" | "major" | "minor";
-type Phase = "root" | "inversion";
+type Preset = "all" | "major" | "minor" | `song:${string}`;
+type Phase = "root" | "inversion" | "song";
 
 interface Stats {
   chordsPlayed: number;
@@ -33,6 +40,7 @@ app.innerHTML = `
       <option value="all">All chords</option>
       <option value="major">Major</option>
       <option value="minor">Minor</option>
+      <optgroup label="Verse + Chorus"></optgroup>
     </select>
 
     <select id="hand-select" class="select" style="width: auto">
@@ -97,6 +105,16 @@ const handSelect = document.getElementById("hand-select") as HTMLSelectElement;
 const durationSelect = document.getElementById("duration-select") as HTMLSelectElement;
 const presetSelect = document.getElementById("preset-select") as HTMLSelectElement;
 
+// ── Populate song pattern options ────────────────────────────────────
+
+const songOptgroup = presetSelect.querySelector("optgroup")!;
+for (const { id, label } of SONG_PATTERN_LIST) {
+  const opt = document.createElement("option");
+  opt.value = `song:${id}`;
+  opt.textContent = label;
+  songOptgroup.appendChild(opt);
+}
+
 // ── Chord presets ────────────────────────────────────────────────────
 
 const MAJOR_CHORDS: Record<string, readonly number[]> = Object.fromEntries(
@@ -132,9 +150,21 @@ let currentChordName = "";
 let rootNotes: readonly number[] = [];
 
 // Phase: first play root position, then play a random inversion
+// In song mode, phase is always "song" (no root-then-inversion step)
 let phase: Phase = "root";
 let expectedNotes: number[] = [];
 let ghostNotes: number[] = []; // gray keys showing where the note was before inversion
+
+// Song mode state: Verse(x2) → Chorus(x1) → repeat
+let activeSong: SongStructure | null = null;
+type SongSection = "verse1" | "verse2" | "chorus";
+let songSection: SongSection = "verse1";
+let songChordIndex = 0;
+// Pre-computed voiced progressions (with optimal inversions)
+let voicedVerse: number[][] = [];
+let voicedChorus: number[][] = [];
+// Chord names for the current section (for display)
+let sectionChordNames: readonly string[] = [];
 
 const pressedNotes = new Set<number>();
 let hasWon = false;
@@ -222,9 +252,17 @@ function startGame(): void {
   }, 1000);
 
   preset = presetSelect.value as Preset;
+  activeSong = null;
+  songSection = "verse1";
+  songChordIndex = 0;
 
   updateStartButton();
-  pickNewChord();
+
+  if (preset.startsWith("song:")) {
+    pickNextSongChord();
+  } else {
+    pickNewChord();
+  }
 }
 
 function stopGame(): void {
@@ -248,6 +286,7 @@ function getChordsForHand(hand: "left" | "right"): Record<string, readonly numbe
     if (preset === "minor") return leftMinor;
     return leftChords;
   }
+  if (preset.startsWith("song:")) return BASE_CHORDS;
   return getChordsForPreset(preset);
 }
 
@@ -311,11 +350,73 @@ function pickInversion(): void {
   updateDisplay();
 }
 
-// ── Display ──────────────────────────────────────────────────────────
+// ── Song mode ───────────────────────────────────────────────────────
+
+function initSong(): void {
+  const patternId = preset.slice(5);
+  const candidates = SONG_STRUCTURES.filter((s) => s.pattern === patternId);
+  activeSong = pickRandom(candidates.length > 0 ? candidates : SONG_STRUCTURES);
+
+  // Pre-compute voiced progressions with optimal inversions
+  const handOpt = { hand: activeHand as "left" | "right" };
+  voicedVerse = voiceLeadProgression(activeSong.verse, BASE_CHORDS, handOpt);
+
+  // Start chorus from where verse ends for smooth transition
+  const verseEnd = voicedVerse[voicedVerse.length - 1];
+  voicedChorus = [];
+  let prev = verseEnd;
+  for (const name of activeSong.chorus) {
+    const closest = findClosestInversion(prev, BASE_CHORDS[name], handOpt);
+    voicedChorus.push(closest);
+    prev = closest;
+  }
+
+  songSection = "verse1";
+  songChordIndex = 0;
+}
+
+function pickNextSongChord(): void {
+  if (!activeSong) initSong();
+
+  phase = "song";
+  const isChorus = songSection === "chorus";
+  const voiced = isChorus ? voicedChorus : voicedVerse;
+  sectionChordNames = isChorus ? activeSong!.chorus : activeSong!.verse;
+
+  currentChordName = sectionChordNames[songChordIndex];
+  rootNotes = BASE_CHORDS[currentChordName];
+  expectedNotes = voiced[songChordIndex];
+
+  // Ghost keys: root position notes not present in the voiced chord
+  ghostNotes = [];
+  const voicedSet = new Set(expectedNotes);
+  for (const note of rootNotes) {
+    if (!voicedSet.has(note)) {
+      ghostNotes.push(note);
+    }
+  }
+
+  incorrectPressCount = 0;
+  tempHighlight = false;
+
+  updateDisplay();
+
+  // Advance section *after* display
+  songChordIndex++;
+  if (songChordIndex >= voiced.length) {
+    songChordIndex = 0;
+    if (songSection === "verse1") songSection = "verse2";
+    else if (songSection === "verse2") songSection = "chorus";
+    else songSection = "verse1";
+  }
+}
 
 function updateDisplay(): void {
   // Phase label
-  if (phase === "root") {
+  if (phase === "song") {
+    if (songSection === "chorus") phaseLabelEl.textContent = "Chorus";
+    else phaseLabelEl.textContent = "Verse";
+  } else if (phase === "root") {
     phaseLabelEl.textContent = "Root position";
   } else {
     phaseLabelEl.textContent = "Inversion";
@@ -372,11 +473,11 @@ function checkWin(): void {
       pressedNotes.clear();
       hasWon = false;
 
-      if (phase === "root") {
-        // After playing root position, ask for an inversion
+      if (phase === "song") {
+        pickNextSongChord();
+      } else if (phase === "root") {
         pickInversion();
       } else {
-        // After playing inversion, pick a new chord
         pickNewChord();
       }
     }, 600);
@@ -437,7 +538,14 @@ presetSelect.addEventListener("change", () => {
   if (!gameRunning) {
     pressedNotes.clear();
     currentChordName = "";
-    pickNewChord();
+    activeSong = null;
+    songSection = "verse1";
+    songChordIndex = 0;
+    if (preset.startsWith("song:")) {
+      pickNextSongChord();
+    } else {
+      pickNewChord();
+    }
   }
 });
 
@@ -475,5 +583,9 @@ const midiManager = new MIDIManager({
   },
 });
 
-pickNewChord();
+if (preset.startsWith("song:")) {
+  pickNextSongChord();
+} else {
+  pickNewChord();
+}
 void midiManager.initialize();

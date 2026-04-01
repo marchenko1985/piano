@@ -19,7 +19,8 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 
 ## Phase 3: More Games
 
-- [ ] **Voice-leading module** — inversion generation, optimal voice leading
+- [x] **Voice-leading module** — inversion generation, optimal voice leading, slash notation
+- [x] **Inversions game** (`inversions.html`) — root→inversion practice (1st/2nd), song patterns with voice-led progressions
 - [ ] **Sequence game** (`sequence.html`) — custom/preset sequences, voice leading toggle
 - [ ] **Audio module** — Web Audio synthesis for feedback sounds
 - [ ] **Sheet music module** — VexFlow wrapper for notation rendering
