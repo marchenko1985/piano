@@ -11,6 +11,7 @@ app.innerHTML = `
     <h2>Games</h2>
     <ul>
       <li><a href="/piano/random.html">Random Chords</a> — timed chord practice with progressions</li>
+      <li><a href="/piano/inversions.html">Inversions</a> — chord inversion practice with voice leading</li>
     </ul>
   </section>
 
