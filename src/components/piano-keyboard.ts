@@ -58,6 +58,22 @@ export class PianoKeyboardElement extends HTMLElement {
         this.dispatchEvent(new CustomEvent("key-click", { detail: { midi }, bubbles: true }));
       }
     });
+    this.shadowRoot!.addEventListener("mousedown", (e) => {
+      const kbd = (e.target as HTMLElement).closest("kbd");
+      if (!kbd) return;
+      const midi = Number(kbd.getAttribute("data-midi"));
+      if (!Number.isNaN(midi)) {
+        this.dispatchEvent(new CustomEvent("key-down", { detail: { midi }, bubbles: true }));
+      }
+    });
+    this.shadowRoot!.addEventListener("mouseup", (e) => {
+      const kbd = (e.target as HTMLElement).closest("kbd");
+      if (!kbd) return;
+      const midi = Number(kbd.getAttribute("data-midi"));
+      if (!Number.isNaN(midi)) {
+        this.dispatchEvent(new CustomEvent("key-up", { detail: { midi }, bubbles: true }));
+      }
+    });
   }
 
   connectedCallback(): void {

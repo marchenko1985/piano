@@ -12,6 +12,7 @@ app.innerHTML = `
     <ul>
       <li><a href="/piano/random.html">Random Chords</a> — timed chord practice with progressions</li>
       <li><a href="/piano/inversions.html">Inversions</a> — chord inversion practice with voice leading</li>
+      <li><a href="/piano/sequence.html">Sequence</a> — custom chord sequence practice</li>
     </ul>
   </section>
 
@@ -22,6 +23,9 @@ app.innerHTML = `
       <li><a href="/piano/debug/chords.html">Chords</a> — chord parsing, building, and lookup</li>
       <li><a href="/piano/debug/session.html">Session</a> — timer, progress bar, inactivity timeout</li>
       <li><a href="/piano/debug/components.html">Components</a> — design system showcase</li>
+      <li><a href="/piano/debug/audio.html">Web Audio</a> — oscillator synthesis, note & chord playback</li>
+      <li><a href="/piano/debug/soundfont.html">SoundFont</a> — piano sample playback</li>
+      <li><a href="/piano/debug/metronome.html">Metronome</a> — tempo, time signature, visual beat</li>
     </ul>
   </section>
 `;
