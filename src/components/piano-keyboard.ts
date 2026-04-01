@@ -31,6 +31,21 @@ function parseCommaSeparatedNumbers(str: string | null): number[] {
     .filter((n) => !Number.isNaN(n));
 }
 
+/** Parse "midi:finger,midi:finger,..." into a Map. */
+function parseFingers(str: string | null): Map<number, number> {
+  const map = new Map<number, number>();
+  if (!str) return map;
+  for (const pair of str.split(",")) {
+    const [midiStr, fingerStr] = pair.split(":");
+    const midi = parseInt(midiStr, 10);
+    const finger = parseInt(fingerStr, 10);
+    if (!Number.isNaN(midi) && !Number.isNaN(finger)) {
+      map.set(midi, finger);
+    }
+  }
+  return map;
+}
+
 function generateKeys(startNote: number, endNote: number): PianoKey[] {
   const keys: PianoKey[] = [];
   for (let midi = startNote; midi <= endNote; midi++) {
@@ -81,11 +96,11 @@ export class PianoKeyboardElement extends HTMLElement {
   }
 
   static get observedAttributes(): string[] {
-    return COLOR_ATTRIBUTES;
+    return [...COLOR_ATTRIBUTES, "fingers"];
   }
 
-  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
-    if ((COLOR_ATTRIBUTES as readonly string[]).includes(name) && oldValue !== newValue) {
+  attributeChangedCallback(_name: string, oldValue: string | null, newValue: string | null): void {
+    if (oldValue !== newValue) {
       this.#render();
     }
   }
@@ -123,6 +138,7 @@ export class PianoKeyboardElement extends HTMLElement {
   #render(): void {
     const startNote = parseInt(this.getAttribute("start") ?? "48", 10); // C3
     const endNote = parseInt(this.getAttribute("end") ?? "84", 10); // C6
+    const fingers = parseFingers(this.getAttribute("fingers"));
 
     const keys = generateKeys(startNote, endNote);
     const whiteKeys = keys.filter((k) => !k.isBlack);
@@ -136,14 +152,18 @@ export class PianoKeyboardElement extends HTMLElement {
     const whiteHtml = whiteKeys
       .map((key) => {
         const label = key.note === "C" && showOctave ? key.note + key.octave : key.note;
-        return `<kbd class="white ${this.#getClassNames(key.midi)}" data-label="${label}" data-note="${key.note}" data-octave="${key.octave}" data-midi="${key.midi}" data-pitch="${key.pitch}"></kbd>`;
+        const finger = fingers.get(key.midi);
+        const fingerHtml = finger != null ? `<span class="finger">${finger}</span>` : "";
+        return `<kbd class="white ${this.#getClassNames(key.midi)}" data-label="${label}" data-note="${key.note}" data-octave="${key.octave}" data-midi="${key.midi}" data-pitch="${key.pitch}">${fingerHtml}</kbd>`;
       })
       .join("");
 
     const blackHtml = blackKeys
       .map((key) => {
         const positionIndex = whiteKeys.findIndex((w) => w.midi > key.midi);
-        return `<kbd class="black ${this.#getClassNames(key.midi)}" data-note="${key.note}" data-octave="${key.octave}" data-midi="${key.midi}" data-pitch="${key.pitch}" style="left: calc(100%/${whiteCount}*${positionIndex})"></kbd>`;
+        const finger = fingers.get(key.midi);
+        const fingerHtml = finger != null ? `<span class="finger">${finger}</span>` : "";
+        return `<kbd class="black ${this.#getClassNames(key.midi)}" data-note="${key.note}" data-octave="${key.octave}" data-midi="${key.midi}" data-pitch="${key.pitch}" style="left: calc(100%/${whiteCount}*${positionIndex})">${fingerHtml}</kbd>`;
       })
       .join("");
 
@@ -189,6 +209,21 @@ export class PianoKeyboardElement extends HTMLElement {
           box-sizing: border-box;
           transform: translateX(-50%);
           cursor: pointer;
+        }
+
+        .finger {
+          position: absolute;
+          top: 4px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 14px;
+          font-weight: 400;
+          line-height: 1;
+          pointer-events: none;
+          user-select: none;
+          color: black;
+          opacity: 0.6;
         }
 
         .gray { background-color: lightgray; }

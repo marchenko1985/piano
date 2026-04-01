@@ -5,6 +5,8 @@ import {
   NOTE_NAMES,
   SONG_PATTERN_LIST,
   SONG_STRUCTURES,
+  assignFingering,
+  assignFingeringInContext,
   buildChordNotes,
   midiToNoteName,
   transposeChords,
@@ -170,6 +172,7 @@ interface ChordCell {
   displayName: string;
   voiced: number[];
   ghostNotes: number[];
+  fingers: readonly number[];
 }
 
 let grid: ChordCell[][] = [];
@@ -222,15 +225,29 @@ function parseGrid(): boolean {
   if (optimizeCb.checked) {
     applyVoiceLeading(rawGrid);
   } else {
-    grid = rawGrid.map((row) =>
-      row.map(({ name, notes }) => ({
-        name,
-        rootNotes: notes,
-        displayName: name,
-        voiced: notes,
-        ghostNotes: [],
-      })),
-    );
+    grid = [];
+    let prevNotes: number[] = [];
+    let prevFingers: readonly number[] = [];
+    for (const rawRow of rawGrid) {
+      const row: ChordCell[] = [];
+      for (const { name, notes } of rawRow) {
+        const fingers =
+          prevFingers.length === 3
+            ? assignFingeringInContext(notes, hand, prevNotes, prevFingers)
+            : assignFingering(notes, hand);
+        row.push({
+          name,
+          rootNotes: notes,
+          displayName: name,
+          voiced: notes,
+          ghostNotes: [],
+          fingers,
+        });
+        prevNotes = notes;
+        prevFingers = fingers;
+      }
+      grid.push(row);
+    }
   }
 
   return true;
@@ -241,6 +258,7 @@ function applyVoiceLeading(rawGrid: { name: string; notes: number[] }[][]): void
   grid = [];
 
   let prev: number[] | null = null;
+  let prevFingers: readonly number[] = [];
 
   for (const rawRow of rawGrid) {
     const row: ChordCell[] = [];
@@ -262,8 +280,14 @@ function applyVoiceLeading(rawGrid: { name: string; notes: number[] }[][]): void
 
       const displayName = getInversionLabel(name, notes, voiced);
 
-      row.push({ name, rootNotes: notes, displayName, voiced, ghostNotes });
+      const fingers =
+        prev && prevFingers.length === 3
+          ? assignFingeringInContext(voiced, hand, prev, prevFingers)
+          : assignFingering(voiced, hand);
+
+      row.push({ name, rootNotes: notes, displayName, voiced, ghostNotes, fingers });
       prev = voiced;
+      prevFingers = fingers;
     }
 
     grid.push(row);
@@ -290,15 +314,29 @@ optimizeCb.addEventListener("change", () => {
   if (optimizeCb.checked) {
     applyVoiceLeading(rawGrid);
   } else {
-    grid = rawGrid.map((row) =>
-      row.map(({ name, notes }) => ({
-        name,
-        rootNotes: notes,
-        displayName: name,
-        voiced: notes,
-        ghostNotes: [],
-      })),
-    );
+    grid = [];
+    let prevNotes: number[] = [];
+    let prevFingers: readonly number[] = [];
+    for (const rawRow of rawGrid) {
+      const row: ChordCell[] = [];
+      for (const { name, notes } of rawRow) {
+        const fingers =
+          prevFingers.length === 3
+            ? assignFingeringInContext(notes, hand, prevNotes, prevFingers)
+            : assignFingering(notes, hand);
+        row.push({
+          name,
+          rootNotes: notes,
+          displayName: name,
+          voiced: notes,
+          ghostNotes: [],
+          fingers,
+        });
+        prevNotes = notes;
+        prevFingers = fingers;
+      }
+      grid.push(row);
+    }
   }
 
   renderGrid();
@@ -504,6 +542,12 @@ function updateDisplay(): void {
   piano.setAttribute("gray", gray.join(","));
   piano.setAttribute("green", green.join(","));
   piano.setAttribute("red", red.join(","));
+
+  if (showHighlight && cell.voiced.length === 3 && cell.fingers.length === 3) {
+    piano.setAttribute("fingers", cell.voiced.map((n, i) => `${n}:${cell.fingers[i]}`).join(","));
+  } else {
+    piano.removeAttribute("fingers");
+  }
 
   const pressedNames = [...pressedNotes]
     .sort((a, b) => a - b)

@@ -257,12 +257,24 @@ export const SONG_STRUCTURES: readonly SongStructure[] = NOTE_NAMES.flatMap((roo
   })),
 );
 
-/** Fingering patterns keyed by interval structure. */
-export const FINGERING_PATTERNS: Record<string, readonly number[]> = {
-  "4,3": [1, 3, 5], // Major (M3 + m3)
-  "3,4": [1, 2, 5], // Minor (m3 + M3)
-  "3,3": [1, 2, 4], // Diminished
-  "4,4": [1, 3, 5], // Augmented
+/**
+ * Standard triad fingering by inversion and hand.
+ *
+ * These patterns are universal — they apply to all major/minor triads
+ * in all 12 keys. The middle finger (2) substitutes when the hand shape
+ * is more compact (1st inversion RH, 2nd inversion LH).
+ */
+const TRIAD_FINGERING: Record<string, Record<string, readonly number[]>> = {
+  right: {
+    root: [1, 3, 5],
+    first: [1, 2, 5],
+    second: [1, 3, 5],
+  },
+  left: {
+    root: [5, 3, 1],
+    first: [5, 3, 1],
+    second: [5, 2, 1],
+  },
 };
 
 // ── MIDI ↔ note name conversion ──────────────────────────────────────
@@ -453,10 +465,94 @@ export function buildChordNotes(chordName: string): number[] | null {
 
 // ── Fingering ────────────────────────────────────────────────────────
 
-/** Assign fingering (1-5) based on interval pattern of a 3-note chord. */
-export function assignFingering(notes: readonly number[]): readonly number[] {
-  const pattern = `${notes[1] - notes[0]},${notes[2] - notes[1]}`;
-  return FINGERING_PATTERNS[pattern] ?? [1, 3, 5];
+/**
+ * Detect inversion type from a 3-note voicing.
+ *
+ * Classifies by the interval pattern between consecutive notes:
+ * - Root position: M3+m3 (major) or m3+M3 (minor) — bottom interval ≤ 4
+ * - 1st inversion: bottom interval is m3 or M3, top is P4 (5 semitones)
+ * - 2nd inversion: bottom interval is P4 (5 semitones)
+ */
+function detectInversion(notes: readonly number[]): "root" | "first" | "second" {
+  const low = notes[1] - notes[0];
+  const high = notes[2] - notes[1];
+  // 1st inversion: 3rd is in bass → intervals are (m3|M3) + P4
+  if (high === 5) return "first";
+  // 2nd inversion: 5th is in bass → intervals are P4 + (m3|M3)
+  if (low === 5) return "second";
+  // Root position (or fallback)
+  return "root";
+}
+
+/**
+ * Assign fingering (1-5) for each note of a triad voicing.
+ *
+ * Uses standard piano fingering patterns that are universal across
+ * all major/minor triads. Inversion is auto-detected from intervals.
+ */
+export function assignFingering(
+  notes: readonly number[],
+  hand: "left" | "right" = "right",
+): readonly number[] {
+  if (notes.length !== 3) return [];
+  const inversion = detectInversion(notes);
+  return TRIAD_FINGERING[hand][inversion];
+}
+
+/**
+ * Assign fingering with common-tone retention from a previous chord.
+ *
+ * When transitioning between chords, fingers on notes that didn't move
+ * keep their assignment. The freed finger moves to the new note.
+ * Falls back to standard fingering when there are no common tones
+ * or when retention would produce an invalid (non-ascending) fingering.
+ */
+export function assignFingeringInContext(
+  notes: readonly number[],
+  hand: "left" | "right",
+  prevNotes: readonly number[],
+  prevFingers: readonly number[],
+): readonly number[] {
+  if (notes.length !== 3 || prevNotes.length !== 3 || prevFingers.length !== 3) {
+    return assignFingering(notes, hand);
+  }
+
+  // Map previous MIDI note → finger
+  const prevMap = new Map<number, number>();
+  for (let i = 0; i < prevNotes.length; i++) {
+    prevMap.set(prevNotes[i], prevFingers[i]);
+  }
+
+  // For each note in the new chord, check if it existed in the previous chord
+  const result: (number | null)[] = [null, null, null];
+  const usedFingers = new Set<number>();
+  const freeIndices: number[] = [];
+
+  for (let i = 0; i < notes.length; i++) {
+    const finger = prevMap.get(notes[i]);
+    if (finger != null && !usedFingers.has(finger)) {
+      result[i] = finger;
+      usedFingers.add(finger);
+    } else {
+      freeIndices.push(i);
+    }
+  }
+
+  // Assign remaining fingers to new notes
+  const freeFingers = prevFingers.filter((f) => !usedFingers.has(f));
+  for (let i = 0; i < freeIndices.length; i++) {
+    result[freeIndices[i]] = freeFingers[i] ?? null;
+  }
+
+  // Validate: all assigned, and fingers must be ascending (RH) or descending (LH)
+  if (result.includes(null)) return assignFingering(notes, hand);
+  const fingers = result as number[];
+
+  const ascending = fingers[0] < fingers[1] && fingers[1] < fingers[2];
+  const descending = fingers[0] > fingers[1] && fingers[1] > fingers[2];
+  const valid = hand === "right" ? ascending : descending;
+
+  return valid ? fingers : assignFingering(notes, hand);
 }
 
 // ── Transposition ────────────────────────────────────────────────────

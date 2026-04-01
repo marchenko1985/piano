@@ -83,6 +83,7 @@ function doParse(): void {
   if (!val) {
     parseOutput.textContent = "";
     pianoParse.removeAttribute("yellow");
+    pianoParse.removeAttribute("fingers");
     return;
   }
 
@@ -95,11 +96,22 @@ function doParse(): void {
     lines.push(`Notes:  ${precise.notes.map(midiToNoteName).join(", ")}`);
     lines.push(`MIDI:   ${precise.notes.join(", ")}`);
     pianoParse.setAttribute("yellow", precise.notes.join(","));
+    if (precise.notes.length === 3) {
+      const fingers = assignFingering(precise.notes);
+      lines.push(`Fingering: ${fingers.join("-")}`);
+      pianoParse.setAttribute(
+        "fingers",
+        precise.notes.map((n, i) => `${n}:${fingers[i]}`).join(","),
+      );
+    } else {
+      pianoParse.removeAttribute("fingers");
+    }
   } else {
     const parsed = parseChord(val);
     if (!parsed) {
       lines.push("Could not parse chord.");
       pianoParse.removeAttribute("yellow");
+      pianoParse.removeAttribute("fingers");
     } else if ("isSlashChord" in parsed) {
       lines.push(`Format: slash chord`);
       lines.push(`Root:   ${parsed.rootChord}`);
@@ -108,6 +120,13 @@ function doParse(): void {
       if (notes) {
         lines.push(`Notes:  ${notes.map(midiToNoteName).join(", ")}`);
         lines.push(`MIDI:   ${notes.join(", ")}`);
+        if (notes.length === 3) {
+          const fingers = assignFingering(notes);
+          lines.push(`Fingering: ${fingers.join("-")}`);
+          pianoParse.setAttribute("fingers", notes.map((n, i) => `${n}:${fingers[i]}`).join(","));
+        } else {
+          pianoParse.removeAttribute("fingers");
+        }
         pianoParse.setAttribute("yellow", notes.join(","));
       }
     } else {
@@ -120,8 +139,10 @@ function doParse(): void {
         lines.push(`Notes:  ${notes.map(midiToNoteName).join(", ")}`);
         lines.push(`MIDI:   ${notes.join(", ")}`);
         lines.push(`Precise: ${notesToPreciseString(notes)}`);
-        lines.push(`Fingering: ${assignFingering(notes).join("-")}`);
+        const fingers = assignFingering(notes);
+        lines.push(`Fingering: ${fingers.join("-")}`);
         pianoParse.setAttribute("yellow", notes.join(","));
+        pianoParse.setAttribute("fingers", notes.map((n, i) => `${n}:${fingers[i]}`).join(","));
       }
     }
   }

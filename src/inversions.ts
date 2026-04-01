@@ -4,6 +4,8 @@ import {
   BASE_CHORDS,
   SONG_PATTERN_LIST,
   SONG_STRUCTURES,
+  assignFingering,
+  assignFingeringInContext,
   midiToNoteName,
   transposeChords,
 } from "./chords.ts";
@@ -153,6 +155,7 @@ let rootNotes: readonly number[] = [];
 // In song mode, phase is always "song" (no root-then-inversion step)
 let phase: Phase = "root";
 let expectedNotes: number[] = [];
+let currentFingers: readonly number[] = []; // current fingering assignment
 let ghostNotes: number[] = []; // gray keys showing where the note was before inversion
 
 // Song mode state: Verse(x2) → Chorus(x1) → repeat
@@ -308,6 +311,7 @@ function pickNewChord(): void {
   rootNotes = chords[next];
   phase = "root";
   expectedNotes = [...rootNotes];
+  currentFingers = assignFingering(expectedNotes, activeHand);
   ghostNotes = [];
   incorrectPressCount = 0;
   tempHighlight = false;
@@ -340,8 +344,12 @@ function pickInversion(): void {
     return;
   }
 
+  const prevNotes = expectedNotes;
+  const prevFingers = currentFingers;
+
   const picked = pickRandom(candidates);
   expectedNotes = picked.notes;
+  currentFingers = assignFingeringInContext(expectedNotes, activeHand, prevNotes, prevFingers);
   ghostNotes = [picked.ghost];
 
   incorrectPressCount = 0;
@@ -383,9 +391,19 @@ function pickNextSongChord(): void {
   const voiced = isChorus ? voicedChorus : voicedVerse;
   sectionChordNames = isChorus ? activeSong!.chorus : activeSong!.verse;
 
+  const prevNotes = expectedNotes;
+  const prevFingers = currentFingers;
+
   currentChordName = sectionChordNames[songChordIndex];
   rootNotes = BASE_CHORDS[currentChordName];
   expectedNotes = voiced[songChordIndex];
+
+  // Context-aware fingering: retain fingers on common tones
+  if (prevNotes.length === 3 && prevFingers.length === 3) {
+    currentFingers = assignFingeringInContext(expectedNotes, activeHand, prevNotes, prevFingers);
+  } else {
+    currentFingers = assignFingering(expectedNotes, activeHand);
+  }
 
   // Ghost keys: root position notes not present in the voiced chord
   ghostNotes = [];
@@ -448,6 +466,15 @@ function updateDisplay(): void {
   piano.setAttribute("gray", gray.join(","));
   piano.setAttribute("green", green.join(","));
   piano.setAttribute("red", red.join(","));
+
+  if (showHighlight && expectedNotes.length === 3 && currentFingers.length === 3) {
+    piano.setAttribute(
+      "fingers",
+      expectedNotes.map((n, i) => `${n}:${currentFingers[i]}`).join(","),
+    );
+  } else {
+    piano.removeAttribute("fingers");
+  }
 
   const pressedNames = [...pressedNotes]
     .sort((a, b) => a - b)

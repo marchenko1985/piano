@@ -5,6 +5,8 @@ import {
   PROGRESSIONS,
   SONG_PATTERN_LIST,
   SONG_STRUCTURES,
+  assignFingering,
+  assignFingeringInContext,
   midiToNoteName,
   transposeChords,
 } from "./chords.ts";
@@ -171,6 +173,7 @@ let songChordIndex = 0;
 
 let expectedName = "";
 let expectedNotes: readonly number[] = [];
+let currentFingers: readonly number[] = [];
 const pressedNotes = new Set<number>();
 let hasWon = false;
 let chordCounter = 0;
@@ -359,11 +362,26 @@ function pickRandomChord(): void {
     }
   }
 
+  const prevNotes = expectedNotes;
+  const prevFingers = currentFingers;
+
   expectedName = next;
   expectedNotes = chords[next];
   chordCounter++;
   incorrectPressCount = 0;
   tempHighlight = false;
+
+  // Context-aware fingering: retain fingers on common tones from previous chord
+  if (prevNotes.length === 3 && prevFingers.length === 3) {
+    currentFingers = assignFingeringInContext(
+      [...expectedNotes],
+      activeHand,
+      [...prevNotes],
+      prevFingers,
+    );
+  } else {
+    currentFingers = assignFingering([...expectedNotes], activeHand);
+  }
 
   updateDisplay();
 
@@ -403,6 +421,15 @@ function updateDisplay(): void {
   piano.setAttribute("yellow", yellow.join(","));
   piano.setAttribute("green", green.join(","));
   piano.setAttribute("red", red.join(","));
+
+  if (showHighlight && expectedNotes.length === 3 && currentFingers.length === 3) {
+    piano.setAttribute(
+      "fingers",
+      expectedNotes.map((n, i) => `${n}:${currentFingers[i]}`).join(","),
+    );
+  } else {
+    piano.removeAttribute("fingers");
+  }
 
   const pressedNames = [...pressedNotes]
     .sort((a, b) => a - b)
