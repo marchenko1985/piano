@@ -24,9 +24,9 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 - [x] **Sequence game** (`sequence.html`) — custom/preset sequences, voice leading toggle, grid visualization, loop support
 - [x] **Fingering hints** — context-aware finger numbers (1-5) on piano keyboard, common-tone retention across chord transitions
 - [x] **Audio module** — Web Audio oscillator synthesis, SoundFont piano samples, metronome
-- [ ] **Sheet music module** — VexFlow wrapper for notation rendering
-- [ ] **Notes game** (`notes.html`) — single note sight-reading
-- [ ] **Intervals game** (`intervals.html`) — harmonic interval recognition
+- [x] **Sheet music module** — abcjs wrapper for notation rendering
+- [x] **Notes game** (`notes.html`) — single note sight-reading with song-pattern sequences
+- [x] **Intervals game** (`intervals.html`) — harmonic interval recognition with song-pattern sequences
 
 ## Phase 4: Rhythm
 

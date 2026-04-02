@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "PATH=/opt/homebrew/bin:$PATH exec node node_modules/.bin/vp dev"],
       "port": 5173,
       "url": "http://localhost:5173/piano/debug/piano-keyboard.html"
     }

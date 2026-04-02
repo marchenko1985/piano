@@ -12,6 +12,9 @@ app.innerHTML = `
     <ul>
       <li><a href="/piano/random.html">Random Chords</a> — timed chord practice with progressions</li>
       <li><a href="/piano/inversions.html">Inversions</a> — chord inversion practice with voice leading</li>
+      <li><a href="/piano/intervals.html">Intervals</a> — interval recognition from sheet music</li>
+      <li><a href="/piano/notes.html">Note Reading</a> — single note sight-reading from sheet music</li>
+      <li><a href="/piano/rhythm-tap.html">Rhythm Tap</a> — tap rhythms in time with the metronome</li>
       <li><a href="/piano/sequence.html">Sequence</a> — custom chord sequence practice</li>
       <li><a href="/piano/invert.html">Inversion Explorer</a> — find optimal voicings for chord progressions</li>
     </ul>
@@ -27,6 +30,7 @@ app.innerHTML = `
       <li><a href="/piano/debug/audio.html">Web Audio</a> — oscillator synthesis, note & chord playback</li>
       <li><a href="/piano/debug/soundfont.html">SoundFont</a> — piano sample playback</li>
       <li><a href="/piano/debug/metronome.html">Metronome</a> — tempo, time signature, visual beat</li>
+      <li><a href="/piano/debug/sheet.html">Sheet Music</a> — abcjs rendering tests for notes, chords, intervals</li>
     </ul>
   </section>
 `;
