@@ -37,6 +37,7 @@ const PERFECT_WINDOW = 60; // ms
 const GOOD_WINDOW = 140;
 const EARLY_TOLERANCE = 180; // how early you can tap before the beat
 const LATE_TOLERANCE = 350; // how late you can tap after the beat (generous — people react to beats)
+const KEY_RELEASE_MS = 50; // visual gap at end of expected rects for key release time
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -54,7 +55,18 @@ function r(beats: number): RhythmEvent {
 const LEVELS: Level[] = [
   {
     name: "Whole & Half",
-    patterns: [[n(4)], [n(2), n(2)], [n(2), n(1), n(1)]],
+    patterns: [
+      [n(4)],
+      [n(2), n(2)],
+      [n(2), n(1), n(1)],
+      [n(1), n(1), n(2)],
+      [n(2), r(2)],
+      [n(2), r(1), n(1)],
+      [n(1), r(1), n(2)],
+      [n(3), n(1)],
+      [n(1), n(3)],
+      [r(2), n(2)],
+    ],
   },
   {
     name: "Quarter Notes",
@@ -62,6 +74,15 @@ const LEVELS: Level[] = [
       [n(1), n(1), n(1), n(1)],
       [n(1), n(2), n(1)],
       [n(1), r(1), n(1), r(1)],
+      [n(1), n(1), r(1), n(1)],
+      [r(1), n(1), n(1), n(1)],
+      [n(1), r(1), n(1), n(1)],
+      [n(1), n(1), n(1), r(1)],
+      [n(2), n(1), n(1)],
+      [n(1), n(1), n(2)],
+      [r(1), n(1), r(1), n(1)],
+      [n(1), r(2), n(1)],
+      [r(1), n(1), n(2)],
     ],
   },
   {
@@ -70,6 +91,15 @@ const LEVELS: Level[] = [
       [n(0.5), n(0.5), n(0.5), n(0.5), n(1), n(1)],
       [n(1), n(0.5), n(0.5), n(1), n(0.5), n(0.5)],
       [n(0.5), n(0.5), n(1), n(0.5), n(0.5), n(1)],
+      [n(0.5), n(0.5), n(0.5), n(0.5), n(0.5), n(0.5), n(0.5), n(0.5)],
+      [n(1), n(1), n(0.5), n(0.5), n(0.5), n(0.5)],
+      [n(0.5), n(0.5), n(0.5), n(0.5), n(2)],
+      [n(2), n(0.5), n(0.5), n(0.5), n(0.5)],
+      [n(0.5), n(0.5), n(1), n(1), n(1)],
+      [n(1), n(1), n(1), n(0.5), n(0.5)],
+      [n(0.5), n(1), n(0.5), n(1), n(1)],
+      [n(0.5), n(0.5), r(1), n(0.5), n(0.5), n(1)],
+      [n(1), n(0.5), n(0.5), n(0.5), n(0.5), n(1)],
     ],
   },
   {
@@ -78,6 +108,13 @@ const LEVELS: Level[] = [
       [n(1.5), n(0.5), n(1.5), n(0.5)],
       [n(1.5), n(0.5), n(1), n(1)],
       [n(3), n(1)],
+      [n(0.5), n(1.5), n(0.5), n(1.5)],
+      [n(1), n(1), n(1.5), n(0.5)],
+      [n(1.5), n(0.5), n(0.5), n(1.5)],
+      [n(0.5), n(1.5), n(1), n(1)],
+      [n(1), n(1.5), n(0.5), n(1)],
+      [n(1.5), n(1.5), n(0.5), n(0.5)],
+      [n(0.5), n(0.5), n(1.5), n(0.5), n(1)],
     ],
   },
   {
@@ -86,6 +123,13 @@ const LEVELS: Level[] = [
       [r(0.5), n(0.5), r(0.5), n(0.5), r(0.5), n(0.5), r(0.5), n(0.5)],
       [n(0.5), n(1), n(0.5), n(0.5), n(1), n(0.5)],
       [n(1), n(0.5), r(0.5), n(1), n(1)],
+      [r(0.5), n(1), n(0.5), n(1), n(1)],
+      [n(0.5), n(1), n(1), n(1), n(0.5)],
+      [r(0.5), n(0.5), n(1), r(0.5), n(0.5), n(1)],
+      [n(0.5), r(0.5), n(0.5), n(0.5), n(1), n(1)],
+      [n(1), r(0.5), n(1.5), n(1)],
+      [r(0.5), n(1.5), r(0.5), n(1.5)],
+      [n(0.5), n(0.5), r(0.5), n(1), n(0.5), n(1)],
     ],
   },
   {
@@ -94,6 +138,13 @@ const LEVELS: Level[] = [
       [n(0.25), n(0.25), n(0.25), n(0.25), n(1), n(1), n(1)],
       [n(1), n(0.25), n(0.25), n(0.25), n(0.25), n(2)],
       [n(0.5), n(0.25), n(0.25), n(0.5), n(0.25), n(0.25), n(1), n(1)],
+      [n(1), n(1), n(0.25), n(0.25), n(0.25), n(0.25), n(1)],
+      [n(0.25), n(0.25), n(0.25), n(0.25), n(0.25), n(0.25), n(0.25), n(0.25), n(2)],
+      [n(2), n(0.25), n(0.25), n(0.25), n(0.25), n(1)],
+      [n(0.25), n(0.25), n(0.5), n(1), n(0.25), n(0.25), n(0.5), n(1)],
+      [n(1), n(0.25), n(0.25), n(0.5), n(1), n(1)],
+      [n(0.5), n(0.5), n(0.25), n(0.25), n(0.25), n(0.25), n(0.5), n(0.5), n(1)],
+      [n(0.25), n(0.75), n(0.25), n(0.75), n(1), n(1)],
     ],
   },
 ];
@@ -179,10 +230,10 @@ app.innerHTML = `
 
     <div id="sheet" style="min-height: 100px; display: flex; align-items: center; justify-content: center">&nbsp;</div>
 
-    <div id="sweep-container" style="position: relative; width: 500px; max-width: 100%; height: 48px; margin: 0 auto; overflow: hidden">
+    <div id="sweep-container" style="position: relative; width: 500px; max-width: 100%; height: 72px; margin: 0 auto; overflow: hidden">
       <div id="sweep-target" style="
-        position: absolute; left: 50%; top: 0; bottom: 0; width: 3px;
-        background: var(--accent); border-radius: 2px; z-index: 3;
+        position: absolute; left: 50%; top: 2px; height: 52px; width: 2px;
+        background: var(--accent); z-index: 3;
         transform: translateX(-50%);
       "></div>
       <div id="sweep-track" style="position: absolute; top: 0; left: 0; height: 100%; z-index: 1;"></div>
@@ -219,7 +270,6 @@ app.innerHTML = `
 const countDisplayEl = document.getElementById("count-display")!;
 const beatDotsEl = document.getElementById("beat-dots")!;
 const sheetEl = document.getElementById("sheet")!;
-const sweepTarget = document.getElementById("sweep-target")!;
 const sweepTrack = document.getElementById("sweep-track")!;
 const feedbackEl = document.getElementById("feedback")!;
 const midiStatusEl = document.getElementById("midi-status")!;
@@ -249,6 +299,7 @@ let currentPattern: RhythmEvent[] = [];
 // Timing state
 let phase: "idle" | "countdown" | "playing" = "idle";
 let countdownBeats = 0;
+let countdownStartTime = 0; // when countdown animation begins
 let patternStartTime = 0; // performance.now() when pattern starts
 let msPerBeat = 750; // 60000 / bpm
 let totalPatternBeats = 4;
@@ -303,20 +354,28 @@ function updateBeatDots(beat: number): void {
   }
 }
 
-// ── Sweep bar (scrolling track, fixed cursor) ───────────────────────
+// ── Piano roll (full-length scrolling timeline) ─────────────────────
+//
+// Layout (height = ROLL_HEIGHT):
+//   Top half:  user input rectangles (drawn in real-time, persist)
+//   Mid line:  thin divider
+//   Bottom half: expected pattern rectangles (light gray, static)
+//
+// The ENTIRE session is pre-built as one long track — no copies, no
+// looping. The track scrolls left so the playhead stays fixed at center.
 
 const PX_PER_BEAT = 80;
-const SWEEP_COPIES = 3; // copies of the pattern for seamless scrolling
-const SWEEP_WIDTH = 500; // container width in px
+const SWEEP_WIDTH = 500;
+const ROLL_HEIGHT = 56;
+const HALF = ROLL_HEIGHT / 2;
+const LEAD_IN_BEATS = COUNT_IN_BEATS; // empty beats before pattern starts
 
-/**
- * Get counting mnemonic for a beat position.
- * "1", "&", "2", "e", etc.
- */
+// Total beats in the full session track
+let totalTrackBeats = 0;
+
 function beatCountLabel(beatPos: number): string {
-  const beat = Math.floor(beatPos) + 1;
+  const beat = Math.floor(beatPos % totalPatternBeats) + 1;
   const frac = Math.round((beatPos - Math.floor(beatPos)) * 4) / 4;
-
   if (frac === 0) return String(beat);
   if (frac === 0.5) return "&";
   if (frac === 0.25) return "e";
@@ -324,112 +383,137 @@ function beatCountLabel(beatPos: number): string {
   return "";
 }
 
-function buildScrollingTrack(events: RhythmEvent[]): void {
+// Active user-input rectangle (grows while key is held)
+let inputRectEl: HTMLDivElement | null = null;
+let inputStartAbsBeat = 0;
+
+/**
+ * Build the full-length track for the entire session duration.
+ * Repeats the pattern enough times to fill the session + margin.
+ */
+function buildFullTrack(events: RhythmEvent[], durationMs: number): void {
   sweepTrack.innerHTML = "";
-  const trackWidth = totalPatternBeats * PX_PER_BEAT;
-  sweepTrack.style.width = `${trackWidth * SWEEP_COPIES}px`;
+  inputRectEl = null;
 
-  for (let copy = 0; copy < SWEEP_COPIES; copy++) {
-    const copyOffset = copy * trackWidth;
+  const totalLoops = Math.ceil(durationMs / (totalPatternBeats * msPerBeat)) + 2;
+  totalTrackBeats = LEAD_IN_BEATS + totalLoops * totalPatternBeats;
+  const totalWidth = totalTrackBeats * PX_PER_BEAT;
+  const patternStart = LEAD_IN_BEATS * PX_PER_BEAT; // where patterns begin
+  sweepTrack.style.width = `${totalWidth}px`;
 
-    // Horizontal track line (thin baseline)
-    const line = document.createElement("div");
-    line.style.cssText = `
-      position: absolute; top: 20px; height: 2px; border-radius: 1px;
-      left: ${copyOffset}px; width: ${trackWidth}px;
-      background: var(--border);
+  // Mid-line divider (full length)
+  const mid = document.createElement("div");
+  mid.style.cssText = `
+    position: absolute; left: 0; top: ${HALF}px;
+    width: ${totalWidth}px; height: 1px;
+    background: var(--border);
+  `;
+  sweepTrack.appendChild(mid);
+
+  // Beat grid lines (full length, aligned to pattern beats)
+  for (let b = 0; b <= totalTrackBeats; b++) {
+    const patternBeat = b - LEAD_IN_BEATS;
+    const isDown = patternBeat >= 0 && patternBeat % totalPatternBeats === 0;
+    const gl = document.createElement("div");
+    gl.style.cssText = `
+      position: absolute; left: ${b * PX_PER_BEAT}px;
+      top: 2px; height: ${ROLL_HEIGHT - 4}px; width: ${isDown ? 2 : 1}px;
+      background: var(--fg-muted); opacity: ${isDown ? 0.35 : 0.15};
+      transform: translateX(-50%);
     `;
-    sweepTrack.appendChild(line);
+    sweepTrack.appendChild(gl);
+  }
 
-    // Beat grid lines
-    for (let b = 0; b <= totalPatternBeats; b++) {
-      const isDownbeat = b % totalPatternBeats === 0;
-      const gridLine = document.createElement("div");
-      gridLine.style.cssText = `
-        position: absolute; left: ${copyOffset + b * PX_PER_BEAT}px;
-        top: 6px; height: 30px; width: ${isDownbeat ? 2 : 1}px;
-        background: var(--fg-muted); opacity: ${isDownbeat ? 0.5 : 0.25};
-        transform: translateX(-50%);
-      `;
-      sweepTrack.appendChild(gridLine);
-    }
-
-    // Event rectangles (notes) and count labels
+  // Expected-pattern rectangles + count labels (after lead-in)
+  for (let loop = 0; loop < totalLoops; loop++) {
+    const loopOffset = patternStart + loop * totalPatternBeats * PX_PER_BEAT;
     let beatPos = 0;
-    let noteIndex = 0;
     for (const event of events) {
-      const x = copyOffset + beatPos * PX_PER_BEAT;
-      const isNote = event.type === "note";
-
-      if (isNote) {
-        // Duration rectangle — shows where the key should be held
+      const x = loopOffset + beatPos * PX_PER_BEAT;
+      if (event.type === "note") {
+        const w = event.beats * PX_PER_BEAT;
+        const releaseGapPx = (KEY_RELEASE_MS / msPerBeat) * PX_PER_BEAT;
+        const gap = 2;
         const rect = document.createElement("div");
-        const widthPx = event.beats * PX_PER_BEAT;
-        const gap = 3; // small gap between adjacent notes
-        rect.className = "sweep-rect";
         rect.style.cssText = `
-          position: absolute; left: ${x + gap / 2}px; top: 10px;
-          width: ${widthPx - gap}px; height: 22px;
+          position: absolute; left: ${x + gap}px; top: ${HALF + 2}px;
+          width: ${Math.max(4, w - gap * 2 - releaseGapPx)}px; height: ${HALF - 4}px;
           border-radius: var(--radius-sm);
-          background: var(--accent-surface);
-          border: 2px solid var(--accent-border);
-          transition: background 0.15s, border-color 0.15s;
+          background: var(--fg-muted); opacity: 0.2;
         `;
-        rect.setAttribute("data-note-index", String(noteIndex));
         sweepTrack.appendChild(rect);
-        noteIndex++;
       }
 
-      // Count label
       const label = beatCountLabel(beatPos);
       if (label) {
-        const labelEl = document.createElement("div");
-        labelEl.textContent = label;
-        labelEl.style.cssText = `
-          position: absolute; left: ${x}px; top: 36px;
+        const el = document.createElement("div");
+        el.textContent = label;
+        el.style.cssText = `
+          position: absolute; left: ${x}px; top: ${ROLL_HEIGHT + 2}px;
           transform: translateX(-50%);
           font-size: 11px; font-weight: 600;
-          color: ${isNote ? "var(--fg)" : "var(--fg-muted)"};
-          opacity: ${isNote ? 0.8 : 0.4};
+          color: var(--fg-muted); opacity: 0.6;
           white-space: nowrap;
         `;
-        sweepTrack.appendChild(labelEl);
+        sweepTrack.appendChild(el);
       }
-
       beatPos += event.beats;
     }
   }
 }
 
-function updateSweepPosition(beatPos: number): void {
-  // Position the middle copy (copy=1) at center for beatPos
-  const currentPx = (totalPatternBeats + beatPos) * PX_PER_BEAT;
+/** For preview (no session), build a short 2-loop track. */
+function buildPreviewTrack(events: RhythmEvent[]): void {
+  buildFullTrack(events, totalPatternBeats * msPerBeat * 2);
+}
+
+/** Position the track so that `absBeat` aligns with the center playhead. */
+function updateSweepPosition(absBeat: number): void {
+  const currentPx = absBeat * PX_PER_BEAT;
   const translateX = SWEEP_WIDTH / 2 - currentPx;
   sweepTrack.style.transform = `translateX(${translateX}px)`;
 }
 
-/** Color all copies of a rectangle by its note index (persists until loop reset). */
-function colorRect(noteIndex: number, color: string): void {
-  const rects = sweepTrack.querySelectorAll<HTMLDivElement>(
-    `.sweep-rect[data-note-index="${noteIndex}"]`,
-  );
-  for (const rect of rects) {
-    rect.style.background = color;
-    rect.style.borderColor = color;
-  }
+/** Get current absolute beat position in track space (includes lead-in). */
+function getAbsBeatPos(): number {
+  if (countdownStartTime === 0) return 0;
+  return (performance.now() - countdownStartTime) / msPerBeat;
 }
 
-function flashSweepTarget(color: string, noteIndex: number): void {
-  sweepTarget.style.background = color;
-  sweepTarget.style.width = "5px";
+/** Start drawing a user-input rectangle at the current absolute beat. */
+function startInputRect(): void {
+  if (phase !== "playing") return;
+  endInputRect();
+  inputStartAbsBeat = getAbsBeatPos();
 
-  // Permanently color the matched rectangle
-  colorRect(noteIndex, color);
+  const x = inputStartAbsBeat * PX_PER_BEAT;
+  const rect = document.createElement("div");
+  rect.className = "input-rect";
+  rect.style.cssText = `
+    position: absolute; left: ${x}px; top: 2px;
+    width: 4px; height: ${HALF - 4}px;
+    border-radius: var(--radius-sm);
+    background: var(--fg-muted); opacity: 0.45;
+  `;
+  sweepTrack.appendChild(rect);
+  inputRectEl = rect;
+}
 
-  setTimeout(() => {
-    sweepTarget.style.background = "var(--accent)";
-    sweepTarget.style.width = "3px";
-  }, 150);
+/** Update the width of the active input rectangle. */
+function growInputRect(): void {
+  if (!inputRectEl) return;
+  const currentAbsBeat = getAbsBeatPos();
+  const durationBeats = currentAbsBeat - inputStartAbsBeat;
+  if (durationBeats < 0) return;
+  inputRectEl.style.width = `${Math.max(4, durationBeats * PX_PER_BEAT)}px`;
+}
+
+/** Finalize the input rectangle (key released). */
+function endInputRect(): void {
+  if (inputRectEl) {
+    growInputRect();
+    inputRectEl = null;
+  }
 }
 
 // ── Pattern rendering ────────────────────────────────────────────────
@@ -463,7 +547,7 @@ function renderPattern(events: RhythmEvent[]): void {
   });
   totalPatternBeats = beatPos;
 
-  buildScrollingTrack(events);
+  buildPreviewTrack(events);
 }
 
 function updatePatternLabel(): void {
@@ -476,6 +560,7 @@ function renderPreview(): void {
   if (currentPatternIndex >= level.patterns.length) currentPatternIndex = 0;
   const pattern = level.patterns[currentPatternIndex];
   renderPattern(pattern);
+  // Start at beat 0: lead-in gap on right, then pattern starts
   updateSweepPosition(0);
   updatePatternLabel();
 }
@@ -527,23 +612,21 @@ function highlightCurrentEvent(abcIndex: number): void {
 
 // ── Timing engine ────────────────────────────────────────────────────
 
-function scheduleLoop(): void {
-  const loopStart = patternStartTime + currentLoop * totalPatternBeats * msPerBeat;
-  scheduledNotes = noteOnlyEvents.map((event) => ({
-    expectedTime: loopStart + event.beatPos * msPerBeat,
-    abcIndex: event.abcIndex,
-    matched: false,
-  }));
-  nextUnmatchedIndex = 0;
-  eventResultColors.clear();
-  resetAllColors();
-
-  // Reset all rectangle colors for the new loop
-  const rects = sweepTrack.querySelectorAll<HTMLDivElement>(".sweep-rect");
-  for (const rect of rects) {
-    rect.style.background = "var(--accent-surface)";
-    rect.style.borderColor = "var(--accent-border)";
+/** Schedule ALL notes for the entire session upfront. */
+function scheduleAllNotes(durationMs: number): void {
+  scheduledNotes = [];
+  const totalLoops = Math.ceil(durationMs / (totalPatternBeats * msPerBeat)) + 2;
+  for (let loop = 0; loop < totalLoops; loop++) {
+    const loopStart = patternStartTime + loop * totalPatternBeats * msPerBeat;
+    for (const event of noteOnlyEvents) {
+      scheduledNotes.push({
+        expectedTime: loopStart + event.beatPos * msPerBeat,
+        abcIndex: event.abcIndex,
+        matched: false,
+      });
+    }
   }
+  nextUnmatchedIndex = 0;
 }
 
 function advancePastMissed(now: number): void {
@@ -556,7 +639,6 @@ function advancePastMissed(now: number): void {
     stats.misses++;
     eventResultColors.set(note.abcIndex, "#ef4444");
     colorAbcElement(note.abcIndex, "#ef4444", "note");
-    colorRect(nextUnmatchedIndex, "#ef4444");
     nextUnmatchedIndex++;
   }
 }
@@ -581,6 +663,9 @@ function handleTap(tapTime: number): void {
   session?.activity();
 
   advancePastMissed(tapTime);
+
+  // Always draw the input rectangle so the user sees their tap visually
+  startInputRect();
 
   if (nextUnmatchedIndex >= scheduledNotes.length) {
     stats.extras++;
@@ -632,9 +717,6 @@ function handleTap(tapTime: number): void {
   eventResultColors.set(note.abcIndex, color);
   colorAbcElement(note.abcIndex, color, "note");
 
-  // Color the rectangle and flash the target line
-  flashSweepTarget(color, nextUnmatchedIndex);
-
   nextUnmatchedIndex++;
 }
 
@@ -644,26 +726,32 @@ function gameLoop(): void {
   if (!gameRunning) return;
   rafId = requestAnimationFrame(gameLoop);
 
+  const now = performance.now();
+
+  // Single continuous sweep: always use countdownStartTime as reference
+  // so there's no jump at the countdown→playing transition
+  const absBeat = (now - countdownStartTime) / msPerBeat;
+  updateSweepPosition(absBeat);
+
   if (phase !== "playing") return;
 
-  const now = performance.now();
   const elapsed = now - patternStartTime;
+
+  // Track which loop we're in (for notation highlighting)
   const totalLoopMs = totalPatternBeats * msPerBeat;
   const loopIndex = Math.floor(elapsed / totalLoopMs);
-
-  // New loop started
   if (loopIndex > currentLoop) {
-    advancePastMissed(now);
     currentLoop = loopIndex;
-    scheduleLoop();
+    eventResultColors.clear();
+    resetAllColors();
   }
 
-  // Current position within loop
+  // Grow active input rectangle in real-time
+  growInputRect();
+
+  // Current position within loop (for notation highlighting)
   const posInLoop = elapsed - currentLoop * totalLoopMs;
   const beatPos = posInLoop / msPerBeat;
-
-  // Update scrolling sweep (continuous motion — the key visual cue)
-  updateSweepPosition(beatPos);
 
   // Find which event the playhead is on
   let currentAbcIndex = 0;
@@ -751,10 +839,13 @@ function startGame(): void {
   const level = LEVELS[currentLevel];
   currentPattern = level.patterns[currentPatternIndex];
   renderPattern(currentPattern);
+  // Rebuild track for full session duration
+  buildFullTrack(currentPattern, Number(durationSelect.value));
 
   gameRunning = true;
   phase = "countdown";
   countdownBeats = 0;
+  countdownStartTime = performance.now();
   currentLoop = 0;
   lastHighlightedAbcIndex = -1;
   eventResultColors.clear();
@@ -780,11 +871,11 @@ function startGame(): void {
         countDisplayEl.textContent = String(countdownBeats);
 
         if (countdownBeats >= COUNT_IN_BEATS) {
-          // Count-in complete — pattern starts on next beat
+          // Count-in complete — pattern starts at LEAD_IN_BEATS from countdownStartTime
           phase = "playing";
-          patternStartTime = performance.now() + msPerBeat;
+          patternStartTime = countdownStartTime + LEAD_IN_BEATS * msPerBeat;
           countDisplayEl.innerHTML = "&nbsp;";
-          scheduleLoop();
+          scheduleAllNotes(Number(durationSelect.value));
         }
       }
     },
@@ -805,16 +896,18 @@ startBtn.addEventListener("click", () => {
 
 // ── Input handlers ───────────────────────────────────────────────────
 
-// MIDI: any note-on is a tap
+// MIDI: note-on → tap, note-off → release
 function onMIDIMessage(event: MIDIMessageEvent): void {
   const [status, , velocity] = event.data!;
   const command = status >> 4;
   if (command === 9 && velocity > 0) {
     handleTap(performance.now());
+  } else if (command === 8 || (command === 9 && velocity === 0)) {
+    endInputRect();
   }
 }
 
-// Keyboard: spacebar
+// Keyboard: spacebar press/release
 let spaceDown = false;
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space" && !e.repeat && !spaceDown) {
@@ -824,14 +917,20 @@ document.addEventListener("keydown", (e) => {
   }
 });
 document.addEventListener("keyup", (e) => {
-  if (e.code === "Space") spaceDown = false;
+  if (e.code === "Space") {
+    spaceDown = false;
+    endInputRect();
+  }
 });
 
-// Click anywhere on page (except interactive elements)
+// Mouse/touch: press → tap, release → end input
 document.addEventListener("mousedown", (e) => {
   const target = e.target as HTMLElement;
   if (target.closest("button, select, dialog, a")) return;
   handleTap(performance.now());
+});
+document.addEventListener("mouseup", () => {
+  endInputRect();
 });
 document.addEventListener(
   "touchstart",
@@ -842,6 +941,9 @@ document.addEventListener(
   },
   { passive: true },
 );
+document.addEventListener("touchend", () => {
+  endInputRect();
+});
 
 // ── Pattern navigation ──────────────────────────────────────────
 
@@ -882,6 +984,7 @@ function startPreview(): void {
 
   let countdownBeatsPreview = 0;
   let previewPhase: "countdown" | "playing" = "countdown";
+  let previewCountdownStart = performance.now();
 
   void metronome.start({
     bpm: currentBpm,
@@ -896,7 +999,7 @@ function startPreview(): void {
 
         if (countdownBeatsPreview >= COUNT_IN_BEATS) {
           previewPhase = "playing";
-          previewStartTime = performance.now() + msPerBeat;
+          previewStartTime = previewCountdownStart + LEAD_IN_BEATS * msPerBeat;
           countDisplayEl.innerHTML = "&nbsp;";
         }
       }
@@ -907,9 +1010,15 @@ function startPreview(): void {
     if (!previewing) return;
     previewRafId = requestAnimationFrame(previewLoop);
 
-    if (previewStartTime === 0) return; // still in countdown
+    // Single continuous sweep from previewCountdownStart
+    const now = performance.now();
+    const absBeat = (now - previewCountdownStart) / msPerBeat;
+    updateSweepPosition(absBeat);
 
-    const elapsed = performance.now() - previewStartTime;
+    // Still in countdown — just animate sweep, nothing else
+    if (previewPhase !== "playing") return;
+
+    const elapsed = now - previewStartTime;
     if (elapsed < 0) return;
 
     const totalLoopMs = totalPatternBeats * msPerBeat;
@@ -925,11 +1034,9 @@ function startPreview(): void {
       resetAllColors();
     }
 
+    // Highlight current event in notation
     const posInLoop = elapsed - loopIndex * totalLoopMs;
     const beatPos = posInLoop / msPerBeat;
-    updateSweepPosition(beatPos);
-
-    // Highlight current event in notation
     let currentAbcIndex = 0;
     for (let i = eventBeatPositions.length - 1; i >= 0; i--) {
       if (eventBeatPositions[i].beatPos <= beatPos) {
