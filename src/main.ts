@@ -15,6 +15,7 @@ app.innerHTML = `
       <li><a href="/piano/intervals.html">Intervals</a> — interval recognition from sheet music</li>
       <li><a href="/piano/notes.html">Note Reading</a> — single note sight-reading from sheet music</li>
       <li><a href="/piano/rhythm-tap.html">Rhythm Tap</a> — tap rhythms in time with the metronome</li>
+      <li><a href="/piano/rhythm-play.html">Rhythm Play</a> — play chord patterns in time with the metronome</li>
       <li><a href="/piano/sequence.html">Sequence</a> — custom chord sequence practice</li>
       <li><a href="/piano/invert.html">Inversion Explorer</a> — find optimal voicings for chord progressions</li>
     </ul>

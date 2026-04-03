@@ -30,8 +30,9 @@ Tracking what to port from the old vanilla JS project (`~/Downloads/chords/`). E
 
 ## Phase 4: Rhythm
 
-- [ ] **Rhythm game** (`rhythm.html`) — pattern practice with timing
-- [ ] **Rhythm v2** — progressive 22-chapter curriculum (decide: port or redesign?)
+- [x] **Rhythm Tap** (`rhythm-tap.html`) — pure rhythm tapping with piano roll visualization, pattern presets, lead-in animation
+- [ ] **Rhythm Play** (`rhythm-play.html`) — rhythm + pitch combined: chord patterns (Alberti bass, arpeggios, waltz) in time with metronome
+- [ ] **Rhythm Echo** (`rhythm-echo.html`) — call-and-response: hear a 1-2 bar rhythm, reproduce it (ear training, no notation)
 
 ## Phase 5: Reference Tools
 
