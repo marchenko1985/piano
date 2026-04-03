@@ -67,7 +67,29 @@ app.innerHTML = `
     <p class="text-muted" style="margin: 0; font-size: var(--text-sm)">Let abcjs wrap to multiple lines. 16 bars, default staffwidth.</p>
     <div id="ex-wrap"></div>
   </section>
+
+  <section class="card stack-sm" style="padding: var(--space-md)">
+    <h3 style="margin: 0">7. Teleprompter (note highlighting)</h3>
+    <p class="text-muted" style="margin: 0; font-size: var(--text-sm)">
+      No cursor line — just note-by-note highlighting. Active note is blue.
+      When line 1 finishes, highlight jumps to line 2. Idle line quietly updates with next bars.
+    </p>
+    <div class="row-sm">
+      <button class="btn btn-primary btn-sm" id="tp-play-btn">▶ Play</button>
+      <span class="text-muted" id="tp-beat-label">Beat: 0</span>
+    </div>
+    <div id="tp-container" style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-sm);">
+      <div id="tp-line1"></div>
+      <div id="tp-line2"></div>
+    </div>
+  </section>
 `;
+
+// Highlight style — uses CSS color property so only paths with
+// fill="currentColor" pick it up. No attribute changes, no layout shift.
+const tpStyle = document.createElement("style");
+tpStyle.textContent = `.tp-active { color: oklch(0.55 0.2 260); }`;
+document.head.appendChild(tpStyle);
 
 // ── ABC patterns for C major ────────────────────────────────────────
 
@@ -249,13 +271,10 @@ function animateScroll(): void {
   const active = getEntryAtBeat(beat);
   const activeIdx = active?.index ?? -1;
   for (let i = 0; i < beatMap.length; i++) {
-    const el = beatMap[i].el as SVGElement;
     if (i === activeIdx) {
-      el.setAttribute("fill", "oklch(0.55 0.2 260)");
-      el.setAttribute("stroke", "oklch(0.55 0.2 260)");
+      beatMap[i].el.classList.add("tp-active");
     } else {
-      el.removeAttribute("fill");
-      el.removeAttribute("stroke");
+      beatMap[i].el.classList.remove("tp-active");
     }
   }
 }
@@ -269,8 +288,7 @@ playBtn.addEventListener("click", () => {
     animatedEl.style.transform = `translateX(${initialX}px)`;
     // Reset colors
     for (const { el } of beatMap) {
-      (el as SVGElement).removeAttribute("fill");
-      (el as SVGElement).removeAttribute("stroke");
+      el.classList.remove("tp-active");
     }
   } else {
     playing = true;
@@ -290,4 +308,206 @@ abcjs.renderAbc("ex-wrap", ["X:1", "M:4/4", "L:1/4", "K:C", `|${sixteenBars}|`].
   scale: 1.1,
   add_classes: true,
   wrap: { minSpacing: 1.5, maxSpacing: 2.5, preferredMeasuresPerLine: 4 },
+});
+
+// ── 7. Teleprompter (note highlighting, no cursor) ─────────────────
+// Two lines always visible. Current note/rest highlighted in blue.
+// When line 1 finishes, highlight jumps to line 2. The idle line
+// quietly updates with the next block. No cursor, no layout shifts.
+
+const TP_BARS_PER_LINE = 4;
+const TP_BEATS_PER_LINE = TP_BARS_PER_LINE * 4;
+const TP_BPM = 90;
+const TP_MS_PER_BEAT = 60000 / TP_BPM;
+const TP_SCALE = 1.2;
+
+// A mix-mode session: different patterns with rest bars between
+const tpSession = [
+  ALBERTI,
+  ALBERTI,
+  ALBERTI,
+  ALBERTI,
+  REST_BAR,
+  ARPEGGIO_UP,
+  ARPEGGIO_UP,
+  ARPEGGIO_UP,
+  ARPEGGIO_DOWN,
+  ARPEGGIO_DOWN,
+  ARPEGGIO_DOWN,
+  ARPEGGIO_DOWN,
+  REST_BAR,
+  WALKING,
+  WALKING,
+  WALKING,
+  ALBERTI,
+  ARPEGGIO_UP,
+  WALKING,
+  ARPEGGIO_DOWN,
+  REST_BAR,
+  REST_BAR,
+  REST_BAR,
+  REST_BAR,
+];
+
+// Group into lines
+const tpLines: string[][] = [];
+for (let i = 0; i < tpSession.length; i += TP_BARS_PER_LINE) {
+  tpLines.push(tpSession.slice(i, i + TP_BARS_PER_LINE));
+}
+
+const tpContainer = document.getElementById("tp-container")!;
+const tpLine1El = document.getElementById("tp-line1")!;
+const tpLine2El = document.getElementById("tp-line2")!;
+const tpPlayBtn = document.getElementById("tp-play-btn")!;
+const tpBeatLabel = document.getElementById("tp-beat-label")!;
+const tpTotalBeats = tpSession.length * 4;
+const tpLineEls = [tpLine1El, tpLine2El];
+
+function renderTpLine(targetEl: HTMLElement, bars: string[]): void {
+  const abc = ["X:1", "M:4/4", "L:1/4", "K:C", `|${bars.join("|")}|`].join("\n");
+  abcjs.renderAbc(targetEl, abc, {
+    staffwidth: tpContainer.clientWidth - 24,
+    scale: TP_SCALE,
+    add_classes: true,
+    paddingleft: 0,
+    paddingright: 0,
+  });
+}
+
+// Build a beat→element-index map from durations
+interface TpBeat {
+  startBeat: number;
+  beats: number;
+}
+
+function buildTpBeatMap(targetEl: HTMLElement): TpBeat[] {
+  const svg = targetEl.querySelector("svg");
+  if (!svg) return [];
+  const els = [...svg.querySelectorAll(".abcjs-note, .abcjs-rest")];
+  const map: TpBeat[] = [];
+  let beat = 0;
+  for (const el of els) {
+    const match = (el as SVGElement).className.baseVal?.match(/abcjs-d(\d+(?:-\d+)?)/);
+    const dur = match ? parseFloat(match[1].replace("-", ".")) * 4 : 1;
+    map.push({ startBeat: beat, beats: dur });
+    beat += dur;
+  }
+  return map;
+}
+
+function getActiveIdx(beatMap: TpBeat[], beat: number): number {
+  for (let i = beatMap.length - 1; i >= 0; i--) {
+    if (beat >= beatMap[i].startBeat) return i;
+  }
+  return 0;
+}
+
+function clearHighlight(lineEl: HTMLElement): void {
+  const svg = lineEl.querySelector("svg");
+  if (!svg) return;
+  for (const el of svg.querySelectorAll(".abcjs-note.tp-active, .abcjs-rest.tp-active")) {
+    el.classList.remove("tp-active");
+  }
+}
+
+function highlightNote(lineEl: HTMLElement, noteIdx: number): void {
+  const svg = lineEl.querySelector("svg");
+  if (!svg) return;
+  const els = svg.querySelectorAll(".abcjs-note, .abcjs-rest");
+  for (let i = 0; i < els.length; i++) {
+    if (i === noteIdx) {
+      els[i].classList.add("tp-active");
+    } else {
+      els[i].classList.remove("tp-active");
+    }
+  }
+}
+
+// State
+const lineSlotData = [0, 1];
+const lineSlotMaps: TpBeat[][] = [[], []];
+
+renderTpLine(tpLine1El, tpLines[0]);
+renderTpLine(tpLine2El, tpLines[1] ?? tpLines[0]);
+lineSlotMaps[0] = buildTpBeatMap(tpLine1El);
+lineSlotMaps[1] = buildTpBeatMap(tpLine2El);
+
+let tpPlaying = false;
+let tpStartTime = 0;
+let tpRafId = 0;
+let tpActiveSlot = 0;
+let tpLastDataLine = -1;
+
+function tpAnimate(): void {
+  if (!tpPlaying) return;
+  tpRafId = requestAnimationFrame(tpAnimate);
+
+  const elapsed = performance.now() - tpStartTime;
+  const globalBeat = elapsed / TP_MS_PER_BEAT;
+  tpBeatLabel.textContent = `Beat: ${Math.floor(globalBeat)} / ${tpTotalBeats}`;
+
+  if (globalBeat >= tpTotalBeats) {
+    tpPlaying = false;
+    tpPlayBtn.textContent = "▶ Play";
+    clearHighlight(tpLine1El);
+    clearHighlight(tpLine2El);
+    cancelAnimationFrame(tpRafId);
+    return;
+  }
+
+  const dataLineIdx = Math.floor(globalBeat / TP_BEATS_PER_LINE);
+  const beatInLine = globalBeat - dataLineIdx * TP_BEATS_PER_LINE;
+
+  // Line transition
+  if (dataLineIdx !== tpLastDataLine) {
+    tpLastDataLine = dataLineIdx;
+    tpActiveSlot = dataLineIdx % 2;
+    const idleSlot = 1 - tpActiveSlot;
+
+    clearHighlight(tpLineEls[idleSlot]);
+
+    // Instantly swap the idle line with next block (user isn't looking at it)
+    const nextDataIdx = dataLineIdx + 1;
+    if (nextDataIdx < tpLines.length && lineSlotData[idleSlot] !== nextDataIdx) {
+      lineSlotData[idleSlot] = nextDataIdx;
+      renderTpLine(tpLineEls[idleSlot], tpLines[nextDataIdx]);
+      lineSlotMaps[idleSlot] = buildTpBeatMap(tpLineEls[idleSlot]);
+    }
+
+    if (lineSlotData[tpActiveSlot] !== dataLineIdx) {
+      lineSlotData[tpActiveSlot] = dataLineIdx;
+      renderTpLine(tpLineEls[tpActiveSlot], tpLines[dataLineIdx]);
+      lineSlotMaps[tpActiveSlot] = buildTpBeatMap(tpLineEls[tpActiveSlot]);
+    }
+  }
+
+  // Highlight current note/rest on the active line
+  const beatMap = lineSlotMaps[tpActiveSlot];
+  const idx = getActiveIdx(beatMap, beatInLine);
+  highlightNote(tpLineEls[tpActiveSlot], idx);
+}
+
+tpPlayBtn.addEventListener("click", () => {
+  if (tpPlaying) {
+    tpPlaying = false;
+    tpPlayBtn.textContent = "▶ Play";
+    cancelAnimationFrame(tpRafId);
+    tpLastDataLine = -1;
+    tpActiveSlot = 0;
+    lineSlotData[0] = 0;
+    lineSlotData[1] = 1;
+    renderTpLine(tpLine1El, tpLines[0]);
+    renderTpLine(tpLine2El, tpLines[1] ?? tpLines[0]);
+    lineSlotMaps[0] = buildTpBeatMap(tpLine1El);
+    lineSlotMaps[1] = buildTpBeatMap(tpLine2El);
+    clearHighlight(tpLine1El);
+    clearHighlight(tpLine2El);
+  } else {
+    tpPlaying = true;
+    tpPlayBtn.textContent = "■ Stop";
+    tpStartTime = performance.now();
+    tpLastDataLine = -1;
+    tpActiveSlot = 0;
+    tpRafId = requestAnimationFrame(tpAnimate);
+  }
 });
